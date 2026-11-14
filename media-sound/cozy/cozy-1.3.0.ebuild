@@ -3,13 +3,13 @@
 
 EAPI=8
 
-PYTHON_COMPAT=( python3_{11..13} )
+PYTHON_COMPAT=( python3_{11..14} )
 
 inherit gnome2-utils meson python-single-r1 xdg
 
 DESCRIPTION="Modern audio book player for Linux built with GTK4 and Libadwaita"
 HOMEPAGE="https://cozy.sh https://github.com/geigi/cozy"
-SRC_URI="https://github.com/geigi/cozy/archive/refs/tags/${PV}.zip -> ${P}.zip"
+SRC_URI="https://github.com/geigi/cozy/archive/refs/tags/${PV}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="GPL-3+"
 SLOT="0"
@@ -47,7 +47,6 @@ RDEPEND="
 
 BDEPEND="
 	${PYTHON_DEPS}
-	app-arch/unzip
 	dev-libs/appstream
 	dev-util/blueprint-compiler
 	dev-util/desktop-file-utils
