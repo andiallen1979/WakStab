@@ -115,11 +115,116 @@ def iter_cfg_lines(base_path: Path):
                 yield s.split()
 
 def collect_portage_state() -> dict:
-    # Collects installed packages, USE flags, keywords, masking rules, environment profiles, and make.conf settings.
-    ...
+    vardb = portage.db[portage.root]["vartree"].dbapi
+    settings = portage.config(clone=portage.settings)
+    saved_use, saved_kw, saved_mask, saved_penv = {}, {}, {}, {}
+    for toks in iter_cfg_lines(PKG_USE_BASE):
+        cp = extract_cp(next(iter(toks))) if len(toks) >= 2 else None
+        if cp:
+            for t in toks[1:]: saved_use.setdefault(cp, {})[t.lstrip("-")] = not t.startswith("-")
+    for toks in iter_cfg_lines(PKG_KW_BASE):
+        cp = extract_cp(next(iter(toks)))
+        if cp: saved_kw.setdefault(cp, set()).update(toks[1:] if len(toks) > 1 else ["~amd64"])
+    for toks in iter_cfg_lines(PKG_MASK_BASE):
+        ra = next(iter(toks)); cp = extract_cp(ra)
+        if cp: saved_mask[cp] = ra
+    for toks in iter_cfg_lines(PKG_ENV_BASE):
+        cp = extract_cp(next(iter(toks))) if len(toks) >= 2 else None
+        if cp: saved_penv.setdefault(cp, set()).update(toks[1:])
+    env_profiles = {f.name: f.read_text(encoding="utf-8", errors="ignore") for f in sorted(ENV_PROFILES_DIR.iterdir()) if f.is_file()} if ENV_PROFILES_DIR.is_dir() else {}
+    mc_file = MAKE_CONF_PATH
+    if MAKE_CONF_PATH.is_dir():
+        cands = sorted(f for f in MAKE_CONF_PATH.iterdir() if f.is_file() and not f.name.startswith("."))
+        mc_file = cands[-1] if cands else (MAKE_CONF_PATH / "00-wakstab.conf")
+    mc_text = mc_file.read_text(encoding="utf-8") if mc_file.is_file() else ""
+    exp_use = {t.lstrip("-"): not t.startswith("-") for t in read_make_conf_var(mc_text, "USE")}
+    act_use = set(settings.get("USE", "").split())
+    g_use = [{"flag": f, "initial": exp_use.get(f, f in act_use), "sym": f"GUSE_{sanitize_symbol(f)}"} for f in sorted(set(COMMON_GLOBAL_USE) | set(exp_use))]
+    exp_feat = {t.lstrip("-"): not t.startswith("-") for t in read_make_conf_var(mc_text, "FEATURES")}
+    act_feat = set(settings.get("FEATURES", "").split())
+    f_desc = dict(COMMON_FEATURES)
+    g_feat = [{"feature": f, "desc": f_desc.get(f, "Custom feature"), "initial": exp_feat.get(f, f in act_feat), "sym": f"GFEAT_{sanitize_symbol(f)}"} for f in sorted(set(f_desc) | set(exp_feat))]
+    presets = {f"wakstab-{k.lower()}.conf": (b, d) for k, b, d in ENV_PRESETS}
+    all_envs = sorted(set(env_profiles) | set(presets))
+    inst_map, cp_ver, all_cps = {}, {}, set()
+    skip = ("abi_", "kernel_", "elibc_", "userland_", "video_cards_", "input_devices_")
+    for cpv in sorted(vardb.cpv_all()):
+        cp = portage.cpv_getkey(cpv); all_cps.add(cp); cp_ver[cp] = cpv
+        iuse, active = vardb.aux_get(cpv, ["IUSE", "USE"]); act_set = set(active.split())
+        for f in {x.lstrip("+-") for x in iuse.split() if not x.lstrip("+-").startswith(skip)}:
+            inst_map.setdefault(cp, {})[f] = inst_map.get(cp, {}).get(f, False) or (f in act_set)
+    packages = []
+    for cp in sorted(all_cps):
+        cat, name = cp.split("/", 1); su = saved_use.get(cp, {})
+        flags = [{"flag": f, "installed": iv, "effective": su.get(f, iv), "sym": f"U_{sanitize_symbol(cp)}__{sanitize_symbol(f)}"} for f, iv in sorted(inst_map.get(cp, {}).items())]
+        kws, penvs = saved_kw.get(cp, set()), saved_penv.get(cp, set()); em = saved_mask.get(cp, "")
+        mm = "NONE" if not em else ("FWD" if em.startswith((">=", ">")) else ("EQ" if em.startswith(("=", "~")) else "ALL"))
+        sb = sanitize_symbol(cp)
+        packages.append({"cp": cp, "cpv": cp_ver[cp], "cat": cat, "name": name, "flags": flags, "use_mod": any(x["effective"] != x["installed"] for x in flags), "kw_t": ("~amd64" in kws or "~*" in kws), "kw_l": ("**" in kws), "sym_kt": f"KT_{sb}", "sym_kl": f"KL_{sb}", "mask_atom": em, "mask_mode": mm, "sym_mn": f"MN_{sb}", "sym_ma": f"MA_{sb}", "sym_me": f"ME_{sb}", "sym_mf": f"MF_{sb}", "envs": [{"name": e, "initial": e in penvs, "sym": f"PE_{sb}__{sanitize_symbol(e)}"} for e in all_envs], "has_env": bool(penvs)})
+    env_items = [{"fname": fn, "body": b, "desc": d, "initial": fn in env_profiles, "sym": f"EF_{sanitize_symbol(fn)}"} for fn, (b, d) in sorted(presets.items())]
+    ed_envs = [{"fname": fn, "vars": [{"key": k, "initial": parse_env_vars(c).get(k, ""), "sym": f"EV_{sanitize_symbol(fn)}__{sanitize_symbol(k)}"} for k in (STD_ENV_VARS + [k for k in parse_env_vars(c) if k not in STD_ENV_VARS])], "sym_del": f"ED_{sanitize_symbol(fn)}"} for fn, c in sorted(env_profiles.items())]
+    return {"packages": packages, "env_items": env_items, "ed_envs": ed_envs, "mc_file": mc_file, "mc_text": mc_text, "exp_use": exp_use, "exp_feat": exp_feat, "g_use": g_use, "g_feat": g_feat}
+
 def generate_kconfig(state: dict, kpath: Path) -> None:
-    # Generates a hierarchical Kconfig structure covering USE flags, keywords, masking, package environments, env profiles, and global make.conf settings.
-    ...
+    by_cat = {}
+    for p in state["packages"]: by_cat.setdefault(p["cat"], []).append(p)
+    L = ['mainmenu "WakStab Portage Configuration Manager"', "", 'menu "1. USE Flags (package.use)"']
+    for cat in sorted(by_cat):
+        pkgs = [p for p in by_cat[cat] if p["flags"]]
+        if not pkgs: continue
+        mod = sum(1 for p in pkgs if p["use_mod"])
+        L.append(f'menu "{cat} ({len(pkgs)} pkgs' + (f', {mod} modified)"' if mod else ')"'))
+        for p in pkgs:
+            L.append(f'menu "{p["name"]}{" [mod]" if p["use_mod"] else ""} ({p["cp"]})"')
+            for i in p["flags"]: L += [f'config {i["sym"]}', f'    bool "{i["flag"]}"', f'    default {"y" if i["effective"] else "n"}', ""]
+            L += ["endmenu", ""]
+        L += ["endmenu", ""]
+    L += ["endmenu", "", 'menu "2. Accept Keywords (package.accept_keywords)"']
+    for cat in sorted(by_cat):
+        pkgs = by_cat[cat]; mod = sum(1 for p in pkgs if p["kw_t"] or p["kw_l"])
+        L.append(f'menu "{cat} ({len(pkgs)} pkgs' + (f', {mod} keyworded)"' if mod else ')"'))
+        for p in pkgs:
+            tag = " [kw]" if (p["kw_t"] or p["kw_l"]) else ""
+            L += [f'menu "{p["name"]}{tag} ({p["cp"]})"', f'config {p["sym_kt"]}', '    bool "Accept ~amd64"', f'    default {"y" if p["kw_t"] else "n"}', "", f'config {p["sym_kl"]}', '    bool "Accept **"', f'    default {"y" if p["kw_l"] else "n"}', "", "endmenu", ""]
+        L += ["endmenu", ""]
+    L += ["endmenu", "", 'menu "3. Package Masking (package.mask)"']
+    for cat in sorted(by_cat):
+        pkgs = by_cat[cat]; mod = sum(1 for p in pkgs if p["mask_mode"] != "NONE")
+        L.append(f'menu "{cat} ({len(pkgs)} pkgs' + (f', {mod} masked)"' if mod else ')"'))
+        for p in pkgs:
+            tag = f" [{p['mask_atom']}]" if p["mask_atom"] else ""
+            ds = {"NONE": p["sym_mn"], "ALL": p["sym_ma"], "EQ": p["sym_me"], "FWD": p["sym_mf"]}[p["mask_mode"]]
+            el = p["mask_atom"] if p["mask_mode"] == "EQ" else f"={p['cpv']}"
+            fl = p["mask_atom"] if p["mask_mode"] == "FWD" else f">={p['cpv']}"
+            L += [f'menu "{p["name"]}{tag} ({p["cp"]})"', "choice", f'    prompt "Mask {p["cp"]}"', f"    default {ds}", f'config {p["sym_mn"]}', '    bool "Unmasked"', f'config {p["sym_ma"]}', f'    bool "All ({p["cp"]})"', f'config {p["sym_me"]}', f'    bool "Exact ({el})"', f'config {p["sym_mf"]}', f'    bool "Forward ({fl})"', "endchoice", "", "endmenu", ""]
+        L += ["endmenu", ""]
+    L += ["endmenu", "", 'menu "4. Package Environments (package.env)"']
+    for cat in sorted(by_cat):
+        pkgs = by_cat[cat]; mod = sum(1 for p in pkgs if p["has_env"])
+        L.append(f'menu "{cat} ({len(pkgs)} pkgs' + (f', {mod} assigned)"' if mod else ')"'))
+        for p in pkgs:
+            tag = " [env]" if p["has_env"] else ""
+            L.append(f'menu "{p["name"]}{tag} ({p["cp"]})"')
+            for e in p["envs"]: L += [f'config {e["sym"]}', f'    bool "Use {e["name"]}"', f'    default {"y" if e["initial"] else "n"}', ""]
+            L += ["endmenu", ""]
+        L += ["endmenu", ""]
+    L += ["endmenu", "", 'menu "5. Environment Profiles (/etc/portage/env)"', 'menu "Edit Existing /etc/portage/env Files"']
+    for ef in state["ed_envs"]:
+        L.append(f'menu "{ef["fname"]}"')
+        for vf in ef["vars"]:
+            esc = vf["initial"].replace("\\", "\\\\").replace('"', '\\"')
+            L += [f'config {vf["sym"]}', f'    string "{vf["key"]}"', f'    default "{esc}"', ""]
+        L += [f'config {ef["sym_del"]}', f'    bool "Delete {ef["fname"]}"', "    default n", "", "endmenu", ""]
+    L += ["endmenu", "", 'menu "Create New /etc/portage/env Profile"', 'config ENEW_FILENAME', '    string "New filename"', '    default ""', ""]
+    for k in ["CFLAGS", "CXXFLAGS", "LDFLAGS", "MAKEOPTS", "FEATURES"]: L += [f'config ENEW_{k}', f'    string "{k}"', '    default ""', ""]
+    L += ["endmenu", "", 'menu "Quick Presets"']
+    for i in state["env_items"]: L += [f'config {i["sym"]}', f'    bool "{i["fname"]} - {i["desc"]}"', f'default {"y" if i["initial"] else "n"}', ""]
+    L += ["endmenu", "", "endmenu", "", 'menu "6. Global make.conf (USE & FEATURES)"', 'menu "Global USE Flags (make.conf USE=...)"']
+    for i in state["g_use"]: L += [f'config {i["sym"]}', f'    bool "{i["flag"]}"', f'    default {"y" if i["initial"] else "n"}', ""]
+    L += ["endmenu", "", 'menu "Global FEATURES (make.conf FEATURES=...)"']
+    for i in state["g_feat"]: L += [f'config {i["sym"]}', f'    bool "{i["feature"]} - {i["desc"]}"', f'    default {"y" if i["initial"] else "n"}', ""]
+    L += ["endmenu", "", "endmenu", ""]
+    kpath.write_text("\n".join(L), encoding="utf-8")
 
 def write_one(target: Path, line: str | None) -> None:
     comments = [r for r in target.read_text(encoding="utf-8").splitlines() if r.strip().startswith("#")] if target.is_file() else []
