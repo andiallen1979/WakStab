@@ -9,9 +9,10 @@ HOMEPAGE="https://codeberg.org/andiallen1979/WakStab"
 LICENSE="metapackage"
 SLOT="0"
 KEYWORDS="amd64"
-IUSE="+conf +kconf +scripts"
+IUSE="+conf +kconf +scripts menu"
 
 RDEPEND="
+	menu? ( app-misc/wakstab-menu )
 	conf? ( sys-config/wakstab-configs )
 	kconf? ( sys-kernel/wakstab-kernel-config )
 	scripts? ( app-portage/wakstab-scripts )
