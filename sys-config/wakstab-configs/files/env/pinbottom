@@ -1,3 +1,0 @@
-pre_src_compile() {
-    taskset -p -c 0-15 $$
-}
