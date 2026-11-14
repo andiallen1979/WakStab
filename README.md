@@ -40,6 +40,34 @@ dispatch-conf
 * **`kconf`** *(enabled by default)* — Installs `sys-kernel/wakstab-kernel-config`
 * **`scripts`** *(enabled by default)* — Installs `app-portage/wakstab-scripts`
 
+## Using the WakStab Binhost
+
+If you install `sys-config/wakstab-configs`, your `/etc/portage/binrepos.conf/` directory is already populated. To configure a client machine manually or verify your setup:
+
+1. **Configure `/etc/portage/binrepos.conf/wakstab.conf`:**
+   ```ini
+   [wakstab]
+   priority = 9999
+   sync-uri = http://<wakstab-binhost-address>/packages
+   ```
+
+2. **Enable binary package fetching in `/etc/portage/make.conf`:**
+   ```bash
+   FEATURES="\${FEATURES} getbinpkg binpkg-request-signature"
+   ```
+   *(If your binhost does not sign packages with GPG, omit `binpkg-request-signature` or set `FEATURES="${FEATURES} getbinpkg"`.)*
+
+3. **Initialize binary package GPG trust (if using signed packages):**
+   ```bash
+   getuto
+   ```
+
+4. **Install or upgrade using prebuilt binaries:**
+   ```bash
+   emerge -avuDN --getbinpkg @world
+   ```
+   *(Pass `--getbinpkgonly` / `-G` if you want Portage to fail rather than fall back to local compilation when a binary is unavailable.)*
+
 ## Maintenance Workflow (Binhost Host)
 
 * **Sync live configs, QA-check, and push to Codeberg:**
