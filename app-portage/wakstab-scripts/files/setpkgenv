@@ -1,95 +1,49 @@
-#!/bin/bash
-#base=/etc/portage/package.env/
-#atom=$(echo "$@" | cut -d' ' -f1 )
-#envs=$(echo "$@" | cut -d' ' -f2- )
-#file=$(echo $atom | cut -d'/' -f2 )
-#dir=$(echo $atom | cut -d'/' -f1 )
-#workdir="$base/$dir"
-#mkdir -p $workdir
-#echo "$atom $envs" >> $workdir/$file
-#----------------------------------------
-#!/bin/bash
-base="/etc/portage/package.env"
-prefix=""
-forward=0
-
-while [[ "$1" == -* ]]; do
+#!/usr/bin/env bash
+set -euo pipefail
+base="/etc/portage/package.env"; prefix=""; pin_mode=""
+usage() {
+    cat <<USAGE
+Usage: $(basename "$0") [OPTIONS] <category/package> <env-profile...>
+Options:
+  -f, --forward    Resolve and pin forward (>=cat/pkg-ver::repo)
+  -e, --exact      Resolve and pin exact version (=cat/pkg-ver::repo)
+  -t, --temp       Write to a temporary file (prefixed with TMP_)
+  -h, --help       Show this help message and exit
+USAGE
+}
+while [[ "${1:-}" == -* ]]; do
     case "$1" in
-        -t) prefix="TMP_"; shift ;;
-        -f) forward=1; shift ;;
-        *)
-            echo "Unknown option: $1" >&2
-            echo "Usage: $(basename "$0") [-t] [-f] <atom> <env-profile...>" >&2
-            exit 1
-            ;;
+        -f|--forward) pin_mode="forward"; shift ;;
+        -e|--exact)   pin_mode="exact"; shift ;;
+        -t|--temp)    prefix="TMP_"; shift ;;
+        -h|--help)    usage; exit 0 ;;
+        *) echo "Unknown option: $1" >&2; usage >&2; exit 1 ;;
     esac
 done
-
-atom="$1"
-shift
-envs="$*"
-
-if [[ -z "$atom" || -z "$envs" ]]; then
-    echo "Usage: $(basename "$0") [-t] [-f] <atom> <env-profile...>" >&2
-    exit 1
-fi
-
-clean="${atom#>=}"
-clean="${clean#<=}"
-clean="${clean#=}"
-clean="${clean#\~}"
-clean="${clean#<}"
-clean="${clean#>}"
-clean="${clean%%::*}"
-clean="${clean%%:*}"
-
-dir="${clean%%/*}"
-pkgver="${clean#*/}"
-
-ver_regex='-[0-9]+(\.[0-9]+)*([a-z]|[0-9]|_alpha|_beta|_pre|_rc|_p|-r[0-9]+)*$'
-if [[ "$pkgver" =~ $ver_regex ]]; then
-    file="$(echo "$pkgver" | sed -E "s/$ver_regex//")"
-    if [[ "$forward" -eq 1 ]]; then
-        if [[ "$atom" == =* && "$atom" != ==* ]]; then
-            atom=">${atom}"
-        elif [[ ! "$atom" =~ ^(=|>=|<=|~|<|>) ]]; then
-            atom=">=$atom"
-        fi
-    else
-        if [[ ! "$atom" =~ ^(=|>=|<=|~|<|>) ]]; then
-            atom="=$atom"
-        fi
-    fi
-else
-    file="$pkgver"
-    [[ "$forward" -eq 1 ]] && echo "Warning: -f ignored because '$atom' has no version number." >&2
-fi
-
-target_file="$base/$dir/${prefix}${file}"
-mkdir -p "$base/$dir"
-
-if [[ -f "$target_file" ]] && awk -v a="$atom" '$1 == a { found=1 } END { exit !found }' "$target_file"; then
-    tmp_file="$(mktemp)"
-    awk -v target_atom="$atom" -v new_envs="$envs" '
-    BEGIN { n_new = split(new_envs, new_arr, /[[:space:]]+/) }
-    {
-        if ($1 == target_atom) {
-            count = 0
-            for (i = 2; i <= NF; i++) items[++count] = $i
-            for (j = 1; j <= n_new; j++) {
-                ne = new_arr[j]
-                if (ne == "") continue
-                exists = 0
-                for (k = 1; k <= count; k++) if (items[k] == ne) exists = 1
-                if (!exists) items[++count] = ne
-            }
-            line = target_atom
-            for (k = 1; k <= count; k++) if (items[k] != "") line = line " " items[k]
-            print line
-        } else {
-            print $0
-        }
-    }' "$target_file" > "$tmp_file" && mv "$tmp_file" "$target_file"
-else
-    echo "$atom $envs" >> "$target_file"
-fi
+atom="${1:-}"; shift || true; envs="$*"
+[[ -z "$atom" || "$atom" != */* || -z "$envs" ]] && { echo "Error: Full category/package atom and env profile(s) required." >&2; usage >&2; exit 1; }
+IFS='|' read -r dir file target_atom < <(python3 - "$atom" "$pin_mode" <<'PY'
+import re, sys, portage
+raw, mode = sys.argv[slice(1, 3)]
+clean, _, _ = re.sub(r"^[<>~=]+", "", raw).partition("::")
+clean, _, _ = clean.partition(":")
+cp = portage.cpv_getkey(clean) or clean
+cat, _, pkg = cp.partition("/")
+if not mode:
+    print(f"{cat}|{pkg}|{cp}"); sys.exit(0)
+vardb, portdb = portage.db[portage.root]["vartree"].dbapi, portage.db[portage.root]["porttree"].dbapi
+def sm(db, a):
+    try: return db.match(a)
+    except portage.exception.InvalidAtom: return []
+cand = f"={clean}" if portage.catpkgsplit(clean) else clean
+mi, mt = sm(vardb, cand) or sm(vardb, clean), sm(portdb, cand) or sm(portdb, clean)
+if mi: cpv = sorted(mi)[-1]; repo = next(iter(vardb.aux_get(cpv, ["repository"])), "")
+elif mt: cpv = sorted(mt)[-1]; repo = portdb.getRepositoryName(portdb.findname(cpv)) if portdb.findname(cpv) else ""
+else: sys.exit(f"Error: Could not resolve '{raw}'.")
+print(f"{cat}|{pkg}|{'>=' if mode == 'forward' else '='}{cpv}{f'::{repo}' if repo else ''}")
+PY
+)
+[[ -e "$base" && ! -d "$base" ]] && rm -f "$base"; [[ -e "$base/$dir" && ! -d "$base/$dir" ]] && rm -f "$base/$dir"
+mkdir -p "$base/$dir"; target_file="$base/$dir/${prefix}${file}"; [[ -d "$target_file" ]] && rm -rf "$target_file"
+awk -v ta="$target_atom" -v ne="$envs" 'BEGIN { n=split(ne,a,/[[:space:]]+/); c=0; for(j=1;j<=n;j++){ if(a[j]=="")continue; ex=0; for(k=1;k<=c;k++) if(it[k]==a[j]) ex=1; if(!ex) it[++c]=a[j] } l=ta; for(k=1;k<=c;k++) l=l" "it[k]; print l }' > "$target_file"
+echo "Updated ${target_file}: $(cat "$target_file")"
