@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE repositories SYSTEM "https://www.gentoo.org/dtd/repositories.dtd">
+<repositories version="1.0">
+	<repo quality="experimental" status="unofficial">
+		<name>WakStab</name>
+		<description lang="en">Personal Gentoo overlay, fleet-wide Portage configurations, kernel config fragments, and helper scripts for the WakStab binhost.</description>
+		<homepage>https://codeberg.org</homepage>
+		<owner type="person">
+			<email>andiallen1979@protonmail.com</email>
+			<name>J. Allen</name>
+		</owner>
+		<source type="git">https://codeberg.org.git</source>
+		<feed>https://codeberg.org.atom</feed>
+	</repo>
+</repositories>
