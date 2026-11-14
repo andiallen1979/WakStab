@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_DIR="/var/db/repos/WakStab"
+MSG="Update WakStab overlay ($(date '+%Y-%m-%d %H:%M'))"
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+		-m|--message)
+			MSG="$2"
+			shift 2
+			;;
+		*)
+			REPO_DIR="$1"
+			shift
+			;;
+	esac
+done
+
+if [[ ! -d "${REPO_DIR}/.git" ]]; then
+	echo "Error: '${REPO_DIR}' is not a Git repository." >&2
+	exit 1
+fi
+
+cd "${REPO_DIR}"
+
+# Ensure root can operate cleanly on Portage-owned repo files
+git config --global --get-all safe.directory | grep -Fxq "${REPO_DIR}" || \
+	git config --global --add safe.directory "${REPO_DIR}"
+
+git add -A
+
+if git diff --cached --quiet; then
+	echo "==> No repository changes to commit."
+	exit 0
+fi
+
+echo "==> Committing changes: ${MSG}"
+git commit -m "${MSG}"
+
+echo "==> Pushing to Codeberg..."
+git push origin main
+
+echo "==> Successfully pushed to Codeberg!"

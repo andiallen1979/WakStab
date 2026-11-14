@@ -1,7 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_DIR="${1:-/var/db/repos/WakStab}"
+REPO_DIR="/var/db/repos/WakStab"
+DO_PUSH=0
+COMMIT_MSG=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+	--push)
+	    DO_PUSH=1
+	    shift
+	    ;;
+	-m|--message)
+	    COMMIT_MSG="$2"
+	    shift 2
+	    ;;
+	*)
+	    REPO_DIR="$1"
+	    shift
+	    ;;
+    esac
+done
 
 PORTAGE_SRC="/etc/portage"
 PORTAGE_FILES="${REPO_DIR}/sys-config/wakstab-configs/files"
@@ -64,6 +83,17 @@ find "${PORTAGE_FILES}" "${KERNEL_FILES}" -type d -exec chmod 0755 {} +
 
 if command -v wakstab-repo-prep >/dev/null 2>&1; then
     wakstab-repo-prep "${REPO_DIR}"
-else
-    echo "Note: Run 'wakstab-repo-prep' to regenerate Manifest and verify with pkgcheck."
+fi
+
+if (( DO_PUSH )); then
+    if command -v wakstab-push >/dev/null 2>&1; then
+	if [[ -n "${COMMIT_MSG}" ]]; then
+	    wakstab-push -m "${COMMIT_MSG}" "${REPO_DIR}"
+	else
+	    wakstab-push "${REPO_DIR}"
+	fi
+    else
+	echo "Error: wakstab-push not found in PATH." >&2
+	exit 1
+    fi
 fi
