@@ -3,7 +3,7 @@
 
 EAPI=8
 
-inherit desktop unpacker xdg
+inherit unpacker xdg
 
 DESCRIPTION="Modern ebook manager and reader with sync and backup capacities"
 HOMEPAGE="https://www.koodoreader.com https://github.com/koodo-reader/koodo-reader"
