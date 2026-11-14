@@ -25,7 +25,8 @@ EOF
 }
 
 # Mode 1: Handle TMP_* cleanup (-t [-d])
-if [[ "$1" == "-t" ]]; then
+[[ "${1:-}" == "-h" || "${1:-}" == "--help" ]] && { usage; exit 0; }
+if [[ "${1:-}" == "-t" ]]; then
     delete=0
     [[ "$2" == "-d" ]] && delete=1
 

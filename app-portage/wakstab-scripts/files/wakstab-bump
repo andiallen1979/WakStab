@@ -4,7 +4,7 @@ set -euo pipefail
 NEW_VER="${1:-}"
 REPO_DIR="${2:-/var/db/repos/WakStab}"
 
-if [[ -z "${NEW_VER}" ]]; then
+if [[ "${NEW_VER}" == "-h" || "${NEW_VER}" == "--help" || -z "${NEW_VER}" ]]; then
     echo "Usage: wakstab-bump <new-version> [repo-dir]" >&2
     echo "Example: wakstab-bump 1.1.0" >&2
     exit 1

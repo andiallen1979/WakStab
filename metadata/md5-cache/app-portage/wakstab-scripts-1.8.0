@@ -6,4 +6,4 @@ KEYWORDS=amd64
 LICENSE=GPL-2
 RDEPEND=app-shells/bash sys-apps/portage
 SLOT=0
-_md5_=ad552d121527332f9b26b79d1a48385e
+_md5_=86d1c40383c48ce9df47badb0501af9e

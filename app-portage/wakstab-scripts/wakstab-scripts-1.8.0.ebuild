@@ -25,5 +25,6 @@ src_install() {
 	dobin "${FILESDIR}/mknbdimg"
 	dobin "${FILESDIR}/wakstab-repo-prep"
 	dobin "${FILESDIR}/wakstab-sync-configs"
+	dobin "${FILESDIR}/wakstab-push"
 	dobin "${FILESDIR}/wakstab-bump"
 }

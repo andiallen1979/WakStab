@@ -1,49 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-REPO_DIR="${1:-/var/db/repos/WakStab}"
+REPO_DIR="/var/db/repos/WakStab"
+usage() { echo "Usage: $(basename "$0") [-h|--help] [repo-dir]" >&2; }
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help) usage; exit 0 ;;
+        -*) echo "Unknown option: $1" >&2; usage; exit 1 ;;
+        *) REPO_DIR="$1"; shift ;;
+    esac
+done
 REPO_NAME="$(basename "${REPO_DIR}")"
-
-if [[ ! -d "${REPO_DIR}/profiles" ]]; then
-    echo "Error: '${REPO_DIR}' does not look like a valid Gentoo repository." >&2
-    exit 1
-fi
-
+[[ ! -d "${REPO_DIR}/profiles" ]] && { echo "Error: '${REPO_DIR}' is not a valid Gentoo repo." >&2; exit 1; }
 shopt -s nullglob
-
 echo "==> Pruning older redundant ebuilds..."
 for pkg_dir in "${REPO_DIR}"/*/*; do
     [[ -d "${pkg_dir}" ]] || continue
-    mapfile -t ebuilds < <(printf '%s\n' "${pkg_dir}"/*.ebuild | sort -V)
-    if (( ${#ebuilds[@]} > 1 )); then
-	for (( i=0; i < ${#ebuilds[@]} - 1; i++ )); do
-	    echo "    Removing old ebuild: $(basename "${ebuilds[$i]}")"
-	    rm -f "${ebuilds[$i]}"
-	done
-    fi
+    raw=( "${pkg_dir}"/*.ebuild ); (( ${#raw[@]} > 1 )) || continue
+    mapfile -t ebuilds < <(printf '%s\n' "${raw[@]}" | sort -V)
+    for (( i=0; i < ${#ebuilds[@]} - 1; i++ )); do rm -f "${ebuilds[$i]}"; done
 done
-
 echo "==> Normalizing indentation (spaces -> tabs) in ${REPO_DIR}..."
-for file in "${REPO_DIR}"/*/*/*.ebuild "${REPO_DIR}"/*/*/metadata.xml; do
-    unexpand --first-only -t 4 "${file}" > "${file}.tmp"
-    mv "${file}.tmp" "${file}"
+for f in "${REPO_DIR}"/*/*/*.ebuild "${REPO_DIR}"/*/*/metadata.xml; do
+    unexpand --first-only -t 4 "$f" > "${f}.tmp" && mv "${f}.tmp" "$f"
 done
-
 echo "==> Regenerating Manifests..."
-for eb in "${REPO_DIR}"/*/*/*.ebuild; do
-    ebuild "${eb}" manifest
-done
-
-if command -v egencache >/dev/null 2>&1; then
-    echo "==> Updating repository metadata cache (egencache)..."
-    egencache --repo="${REPO_NAME}" --update
-fi
-
-if command -v pkgcheck >/dev/null 2>&1; then
-    echo "==> Running pkgcheck QA scan..."
-    pkgcheck scan "${REPO_DIR}"
-else
-    echo "Warning: pkgcheck not installed, skipping QA scan." >&2
-fi
-
+for eb in "${REPO_DIR}"/*/*/*.ebuild; do ebuild "$eb" manifest; done
+command -v egencache >/dev/null 2>&1 && egencache --repo="${REPO_NAME}" --update
+command -v pkgcheck >/dev/null 2>&1 && pkgcheck scan "${REPO_DIR}"
 echo "==> Done!"
