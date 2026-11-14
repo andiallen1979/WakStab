@@ -1,0 +1,1 @@
+media-video/pipewire flatpak echo-cancel extra -ffmpeg -jack-client loudness -modemmanager pipewire-alsa zeroconf jack-sdk

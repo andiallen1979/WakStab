@@ -1,0 +1,1 @@
+media-video/mpv X alsa cdda cli drm dvb dvd egl iconv jpeg lcms libmpv lua nvenc openal pipewire pulseaudio uchardet vaapi vdpau vulkan wayland xv zlib archive bluray -debug gamepad jack javascript libcaca rubberband sdl -sixel -sndio -soc -test tools -zimg

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pkgmetadata SYSTEM "https://gentoo.org">
+<pkgmetadata>
+	<maintainer type="person">
+	<email>andiallen1979@protonmail.com</email>
+	<name>J. Allen</name>
+	</maintainer>
+	<longdescription>
+	Fleet-wide /etc/portage configuration files for WakStab systems,
+	including package.use, package.accept_keywords, package.mask,
+	package.env profiles, repository definitions, and kernel patches.
+	</longdescription>
+</pkgmetadata>

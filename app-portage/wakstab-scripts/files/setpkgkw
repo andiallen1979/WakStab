@@ -1,0 +1,98 @@
+#!/bin/bash
+#base=/etc/portage/package.accept_keywords/
+#atom=$(echo "$@" | cut -d' ' -f1 )
+#kws=$(echo "$@" | cut -d' ' -f2- )
+#file=$(echo $atom | cut -d'/' -f2 )
+#dir=$(echo $atom | cut -d'/' -f1 )
+#mkdir -p $base/$dir
+#echo "$atom $kws" >> $base/$dir/$file
+#---------------------------------------
+#!/bin/bash
+base="/etc/portage/package.accept_keywords"
+prefix=""
+forward=0
+
+while [[ "$1" == -* ]]; do
+    case "$1" in
+        -t) prefix="TMP_"; shift ;;
+        -f) forward=1; shift ;;
+        *)
+            echo "Unknown option: $1" >&2
+            echo "Usage: $(basename "$0") [-t] [-f] <atom> [keywords...]" >&2
+            exit 1
+            ;;
+    esac
+done
+
+atom="$1"
+shift
+kws="$*"
+
+if [[ -z "$atom" ]]; then
+    echo "Usage: $(basename "$0") [-t] [-f] <atom> [keywords...]" >&2
+    exit 1
+fi
+
+clean="${atom#>=}"
+clean="${clean#<=}"
+clean="${clean#=}"
+clean="${clean#\~}"
+clean="${clean#<}"
+clean="${clean#>}"
+clean="${clean%%::*}"
+clean="${clean%%:*}"
+
+dir="${clean%%/*}"
+pkgver="${clean#*/}"
+
+ver_regex='-[0-9]+(\.[0-9]+)*([a-z]|[0-9]|_alpha|_beta|_pre|_rc|_p|-r[0-9]+)*$'
+if [[ "$pkgver" =~ $ver_regex ]]; then
+    file="$(echo "$pkgver" | sed -E "s/$ver_regex//")"
+    if [[ "$forward" -eq 1 ]]; then
+        if [[ "$atom" == =* && "$atom" != ==* ]]; then
+            atom=">${atom}"
+        elif [[ ! "$atom" =~ ^(=|>=|<=|~|<|>) ]]; then
+            atom=">=$atom"
+        fi
+    else
+        if [[ ! "$atom" =~ ^(=|>=|<=|~|<|>) ]]; then
+            atom="=$atom"
+        fi
+    fi
+else
+    file="$pkgver"
+    [[ "$forward" -eq 1 ]] && echo "Warning: -f ignored because '$atom' has no version number." >&2
+fi
+
+target_file="$base/$dir/${prefix}${file}"
+mkdir -p "$base/$dir"
+
+if [[ -f "$target_file" ]] && awk -v a="$atom" '$1 == a { found=1 } END { exit !found }' "$target_file"; then
+    tmp_file="$(mktemp)"
+    awk -v target_atom="$atom" -v new_kws="$kws" '
+    BEGIN { n_new = split(new_kws, new_arr, /[[:space:]]+/) }
+    {
+        if ($1 == target_atom) {
+            count = 0
+            for (i = 2; i <= NF; i++) items[++count] = $i
+            for (j = 1; j <= n_new; j++) {
+                nk = new_arr[j]
+                if (nk == "") continue
+                exists = 0
+                for (k = 1; k <= count; k++) if (items[k] == nk) exists = 1
+                if (!exists) items[++count] = nk
+            }
+            line = target_atom
+            for (k = 1; k <= count; k++) if (items[k] != "") line = line " " items[k]
+            print line
+        } else {
+            print $0
+        }
+    }' "$target_file" > "$tmp_file" && mv "$tmp_file" "$target_file"
+else
+    if [[ -n "$kws" ]]; then
+        echo "$atom $kws" >> "$target_file"
+    else
+        echo "$atom" >> "$target_file"
+    fi
+fi

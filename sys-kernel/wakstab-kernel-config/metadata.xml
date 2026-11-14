@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pkgmetadata SYSTEM "https://gentoo.org">
+<pkgmetadata>
+	<maintainer type="person">
+	<email>andiallen1979@protonmail.com</email>
+	<name>J. Allen</name>
+	</maintainer>
+	<longdescription>
+	Provides modular Linux kernel configuration fragments installed into
+	/etc/kernel/config.d for WakStab hosts. These snippets standardize
+	hardware support, filesystem drivers, and kernel features across
+	distribution kernel rebuilds.
+	</longdescription>
+</pkgmetadata>

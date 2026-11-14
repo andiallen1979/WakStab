@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pkgmetadata SYSTEM "https://gentoo.org">
+<pkgmetadata>
+	<maintainer type="person">
+	<email>andiallen1979@protonmail.com</email>
+	<name>J. Allen</name>
+	</maintainer>
+	<longdescription>
+	Top-level meta-package used to deploy and manage the complete WakStab
+	system baseline, pulling in Portage configuration trees, kernel
+	configuration fragments, and helper utilities via USE flags.
+	</longdescription>
+	<use>
+	<flag name="conf">Install system configuration files via sys-config/wakstab-configs</flag>
+	<flag name="kconf">Install kernel configuration files via sys-kernel/wakstab-kernel-config</flag>
+	<flag name="scripts">Install Portage helper scripts via app-portage/wakstab-scripts</flag>
+	</use>
+</pkgmetadata>

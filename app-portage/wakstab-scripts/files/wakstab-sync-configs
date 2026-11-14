@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_DIR="${1:-/var/db/repos/WakStab}"
+
+PORTAGE_SRC="/etc/portage"
+PORTAGE_FILES="${REPO_DIR}/sys-config/wakstab-configs/files"
+
+KERNEL_SRC="/etc/kernel/config.d"
+KERNEL_FILES="${REPO_DIR}/sys-kernel/wakstab-kernel-config/files"
+
+PORTAGE_DIRS=(
+    package.use
+    package.mask
+    package.env
+    package.accept_keywords
+    env
+    repos.conf
+    patches
+)
+
+if [[ ! -d "${PORTAGE_FILES}" || ! -d "${KERNEL_FILES}" ]]; then
+    echo "Error: Target overlay directories not found under '${REPO_DIR}'." >&2
+    exit 1
+fi
+
+echo "==> Syncing live ${PORTAGE_SRC} into ${PORTAGE_FILES}..."
+for dir in "${PORTAGE_DIRS[@]}"; do
+    if [[ -d "${PORTAGE_SRC}/${dir}" ]]; then
+	mkdir -p "${PORTAGE_FILES}/${dir}"
+	rsync -a --delete \
+	    --exclude='*~' \
+	    --exclude='*.bak' \
+	    --exclude='*.old' \
+	    --exclude='._cfg*' \
+	    "${PORTAGE_SRC}/${dir}/" "${PORTAGE_FILES}/${dir}/"
+    fi
+done
+
+echo "==> Removing excluded savedconfig directory if present..."
+rm -rf "${PORTAGE_FILES}/savedconfig"
+
+echo "==> Removing duplicate files handled dynamically by wakstab-configs ebuild..."
+rm -f "${PORTAGE_FILES}/env/totalpig.conf"
+rm -f "${PORTAGE_FILES}/package.accept_keywords/app-emulation/gxemul"
+rm -f "${PORTAGE_FILES}/package.accept_keywords/dev-debug/gdbgui"
+rm -f "${PORTAGE_FILES}/package.accept_keywords/dev-python/pypresence"
+rm -f "${PORTAGE_FILES}/package.accept_keywords/media-video/devedeng"
+rm -f "${PORTAGE_FILES}/patches/sys-kernel/neptune-kernel/ra24-fix.patch"
+
+if [[ -d "${KERNEL_SRC}" ]]; then
+    echo "==> Syncing live ${KERNEL_SRC}/*.config into ${KERNEL_FILES}..."
+    rsync -a --delete \
+	--include='*.config' \
+	--exclude='*' \
+	"${KERNEL_SRC}/" "${KERNEL_FILES}/"
+else
+    echo "Warning: '${KERNEL_SRC}' not found, skipping kernel config sync." >&2
+fi
+
+echo "==> Normalizing file permissions for pkgcheck compliance..."
+find "${PORTAGE_FILES}" "${KERNEL_FILES}" -type f -exec chmod 0644 {} +
+find "${PORTAGE_FILES}" "${KERNEL_FILES}" -type d -exec chmod 0755 {} +
+
+if command -v wakstab-repo-prep >/dev/null 2>&1; then
+    wakstab-repo-prep "${REPO_DIR}"
+else
+    echo "Note: Run 'wakstab-repo-prep' to regenerate Manifest and verify with pkgcheck."
+fi

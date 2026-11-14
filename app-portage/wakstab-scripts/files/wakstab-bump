@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+NEW_VER="${1:-}"
+REPO_DIR="${2:-/var/db/repos/WakStab}"
+
+if [[ -z "${NEW_VER}" ]]; then
+    echo "Usage: wakstab-bump <new-version> [repo-dir]" >&2
+    echo "Example: wakstab-bump 1.1.0" >&2
+    exit 1
+fi
+
+shopt -s nullglob
+for pkg_dir in "${REPO_DIR}"/*/*; do
+    [[ -d "${pkg_dir}" ]] || continue
+    pkg_name="$(basename "${pkg_dir}")"
+    mapfile -t ebuilds < <(printf '%s\n' "${pkg_dir}"/*.ebuild | sort -V)
+
+    if (( ${#ebuilds[@]} > 0 )); then
+	latest="${ebuilds[-1]}"
+	target="${pkg_dir}/${pkg_name}-${NEW_VER}.ebuild"
+	if [[ "${latest}" != "${target}" ]]; then
+	    echo "==> Bumping ${pkg_name} -> ${NEW_VER}"
+	    cp "${latest}" "${target}"
+	fi
+    fi
+done
+
+if command -v wakstab-repo-prep >/dev/null 2>&1; then
+    wakstab-repo-prep "${REPO_DIR}"
+fi

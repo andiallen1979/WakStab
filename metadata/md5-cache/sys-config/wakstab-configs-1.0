@@ -1,0 +1,9 @@
+DEFINED_PHASES=install postinst
+DESCRIPTION=Fleet-wide Portage configuration tree for WakStab
+EAPI=8
+HOMEPAGE=https://codeberg.org/andiallen1979/WakStab
+KEYWORDS=amd64
+LICENSE=GPL-2
+RDEPEND=app-portage/wakstab-scripts sys-kernel/wakstab-kernel-config
+SLOT=0
+_md5_=6a3e3c01a82145c50fc075adfb12af23

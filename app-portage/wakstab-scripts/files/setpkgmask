@@ -1,0 +1,78 @@
+#!/bin/bash
+#base=/etc/portage/package.mask
+#atom=$(echo "$@" | cut -d' ' -f1 )
+#file=$(echo $atom | cut -d'/' -f2 )
+#dir=$(echo $atom | cut -d'/' -f1 )
+#mkdir -p $base/$dir
+#echo "=$atom " >> $base/$dir/$file
+#-------------------------------------
+#!/bin/bash
+base="/etc/portage/package.mask"
+prefix=""
+forward=0
+
+while [[ "$1" == -* ]]; do
+    case "$1" in
+        -t) prefix="TMP_"; shift ;;
+        -f) forward=1; shift ;;
+        *)
+            echo "Unknown option: $1" >&2
+            echo "Usage: $(basename "$0") [-t] [-f] <atom> [optional reason comment...]" >&2
+            exit 1
+            ;;
+    esac
+done
+
+atom="$1"
+shift
+comment="$*"
+
+if [[ -z "$atom" ]]; then
+    echo "Usage: $(basename "$0") [-t] [-f] <atom> [optional reason comment...]" >&2
+    exit 1
+fi
+
+clean="${atom#>=}"
+clean="${clean#<=}"
+clean="${clean#=}"
+clean="${clean#\~}"
+clean="${clean#<}"
+clean="${clean#>}"
+clean="${clean%%::*}"
+clean="${clean%%:*}"
+
+dir="${clean%%/*}"
+pkgver="${clean#*/}"
+
+ver_regex='-[0-9]+(\.[0-9]+)*([a-z]|[0-9]|_alpha|_beta|_pre|_rc|_p|-r[0-9]+)*$'
+if [[ "$pkgver" =~ $ver_regex ]]; then
+    file="$(echo "$pkgver" | sed -E "s/$ver_regex//")"
+    if [[ "$forward" -eq 1 ]]; then
+        if [[ "$atom" == =* && "$atom" != ==* ]]; then
+            atom=">${atom}"
+        elif [[ ! "$atom" =~ ^(=|>=|<=|~|<|>) ]]; then
+            atom=">=$atom"
+        fi
+    else
+        if [[ ! "$atom" =~ ^(=|>=|<=|~|<|>) ]]; then
+            atom="=$atom"
+        fi
+    fi
+else
+    file="$pkgver"
+    [[ "$forward" -eq 1 ]] && echo "Warning: -f ignored because '$atom' has no version number." >&2
+fi
+
+target_file="$base/$dir/${prefix}${file}"
+mkdir -p "$base/$dir"
+
+# Skip if this exact atom is already masked in the file
+if [[ -f "$target_file" ]] && grep -q -Fx -- "$atom" "$target_file"; then
+    echo "Already masked: $atom in $target_file"
+    exit 0
+fi
+
+if [[ -n "$comment" ]]; then
+    echo "# $comment" >> "$target_file"
+fi
+echo "$atom" >> "$target_file"

@@ -1,0 +1,1 @@
+app-emulation/libvirt apparmor audit bash-completion dtrace firewalld fuse -glusterfs -iscsi -iscsi-direct libssh libssh2 lvm lxc nbd nfs numa parted -pcap -rbd -sasl -test -verify-sig virtiofsd -virtualbox -wireshark-plugins -xen -zfs

@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_DIR="${1:-/var/db/repos/WakStab}"
+REPO_NAME="$(basename "${REPO_DIR}")"
+
+if [[ ! -d "${REPO_DIR}/profiles" ]]; then
+    echo "Error: '${REPO_DIR}' does not look like a valid Gentoo repository." >&2
+    exit 1
+fi
+
+shopt -s nullglob
+
+echo "==> Pruning older redundant ebuilds..."
+for pkg_dir in "${REPO_DIR}"/*/*; do
+    [[ -d "${pkg_dir}" ]] || continue
+    mapfile -t ebuilds < <(printf '%s\n' "${pkg_dir}"/*.ebuild | sort -V)
+    if (( ${#ebuilds[@]} > 1 )); then
+	for (( i=0; i < ${#ebuilds[@]} - 1; i++ )); do
+	    echo "    Removing old ebuild: $(basename "${ebuilds[$i]}")"
+	    rm -f "${ebuilds[$i]}"
+	done
+    fi
+done
+
+echo "==> Normalizing indentation (spaces -> tabs) in ${REPO_DIR}..."
+for file in "${REPO_DIR}"/*/*/*.ebuild "${REPO_DIR}"/*/*/metadata.xml; do
+    unexpand --first-only -t 4 "${file}" > "${file}.tmp"
+    mv "${file}.tmp" "${file}"
+done
+
+echo "==> Regenerating Manifests..."
+for eb in "${REPO_DIR}"/*/*/*.ebuild; do
+    ebuild "${eb}" manifest
+done
+
+if command -v egencache >/dev/null 2>&1; then
+    echo "==> Updating repository metadata cache (egencache)..."
+    egencache --repo="${REPO_NAME}" --update
+fi
+
+if command -v pkgcheck >/dev/null 2>&1; then
+    echo "==> Running pkgcheck QA scan..."
+    pkgcheck scan "${REPO_DIR}"
+else
+    echo "Warning: pkgcheck not installed, skipping QA scan." >&2
+fi
+
+echo "==> Done!"
