@@ -4,23 +4,27 @@ set -euo pipefail
 base="/etc/portage/package.use"
 prefix=""
 forward=0
+view_mode=0
 
-# Parse optional -t and -f flags before the atom
+usage() {
+    cat <<USAGE >&2
+Usage: $(basename "$0") [-v] <atom>
+       $(basename "$0") [-t] [-f] <atom> <useflags...>
+
+Options:
+  -v    View the state of every USE flag for <atom> (short name, cat/pkg, or full CPV)
+  -t    Prefix output filename with TMP_
+  -f    Use forward-versioned atom (>=cat/pkg-ver) instead of unversioned cat/pkg
+USAGE
+}
+
 while [[ "${1:-}" == -* ]]; do
     case "$1" in
-        -t)
-            prefix="TMP_"
-            shift
-            ;;
-        -f)
-            forward=1
-            shift
-            ;;
-        *)
-            echo "Unknown option: $1" >&2
-            echo "Usage: $(basename "$0") [-t] [-f] <atom> <useflags...>" >&2
-            exit 1
-            ;;
+        -v) view_mode=1; shift ;;
+        -t) prefix="TMP_"; shift ;;
+        -f) forward=1; shift ;;
+        -h|--help) usage; exit 0 ;;
+        *) echo "Unknown option: $1" >&2; usage; exit 1 ;;
     esac
 done
 
@@ -28,28 +32,113 @@ atom="${1:-}"
 shift || true
 useflags="$*"
 
-if [[ -z "$atom" || -z "$useflags" ]]; then
-    echo "Usage: $(basename "$0") [-t] [-f] <atom> <useflags...>" >&2
+if [[ -z "$atom" ]]; then
+    usage
     exit 1
 fi
 
-# Strip any existing version operators (>=, <=, =, ~, <, >) from the front
-clean="${atom#>=}"
-clean="${clean#<=}"
-clean="${clean#=}"
-clean="${clean#\~}"
-clean="${clean#<}"
-clean="${clean#>}"
+if [[ "$view_mode" -eq 1 ]]; then
+    python3 - "$atom" <<'PY'
+import re, sys
+from pathlib import Path
+import portage
 
-# Strip ::repo and :slot suffixes from the back
-clean="${clean%%::*}"
-clean="${clean%%:*}"
+raw = next(iter(sys.argv[slice(1, None)]))
+clean, _, _ = re.sub(r"^[<>~=]+", "", raw).partition("::")
+clean, _, _ = clean.partition(":")
 
-# Split category and package-version
-dir="${clean%%/*}"
-pkgver="${clean#*/}"
+vardb = portage.db[portage.root]["vartree"].dbapi
+portdb = portage.db[portage.root]["porttree"].dbapi
 
-# Strip Gentoo version suffix to get clean package name and unversioned atom
+def safe_match(db, atom_str):
+    try:
+        return db.match(atom_str)
+    except portage.exception.InvalidAtom:
+        return []
+
+cpv = None
+if "/" in clean:
+    if vardb.cpv_exists(clean):
+        cpv = clean
+    else:
+        has_ver = portage.catpkgsplit(clean) is not None
+        cand = f"={clean}" if has_ver else clean
+        matches = safe_match(vardb, cand) or safe_match(vardb, clean)
+        if matches:
+            cpv = sorted(matches)[-1]
+        else:
+            pmatches = safe_match(portdb, cand) or safe_match(portdb, clean)
+            if pmatches:
+                cpv = sorted(pmatches)[-1]
+else:
+    for db in (vardb, portdb):
+        found = [c for c in db.cpv_all() if portage.cpv_getkey(c).partition("/") == clean]
+        if found:
+            cpv = sorted(found)[-1]
+            break
+
+if not cpv:
+    sys.exit(f"Error: Could not resolve package '{raw}' in installed or Portage tree.")
+
+cp = portage.cpv_getkey(cpv)
+is_installed = vardb.cpv_exists(cpv)
+db = vardb if is_installed else portdb
+
+iuse_raw, active_raw = db.aux_get(cpv, ["IUSE", "USE"])
+active_set = set(active_raw.split()) if is_installed else set()
+all_flags = sorted({f.lstrip("+-") for f in iuse_raw.split()})
+
+overrides = {}
+base_dir = Path("/etc/portage/package.use")
+if base_dir.exists():
+    files = [base_dir] if base_dir.is_file() else sorted(x for x in base_dir.rglob("*") if x.is_file() and not x.name.startswith("."))
+    for f in files:
+        for line in f.read_text(encoding="utf-8", errors="ignore").splitlines():
+            st = line.strip()
+            if not st or st.startswith("#"):
+                continue
+            toks = st.split()
+            if len(toks) < 2:
+                continue
+            a, _, _ = re.sub(r"^[<>~=]+", "", next(iter(toks))).partition("::")
+            a, _, _ = a.partition(":")
+            try:
+                line_cp = portage.dep_getkey(a)
+            except portage.exception.InvalidAtom:
+                line_cp = portage.cpv_getkey(a)
+            if line_cp == cp:
+                for t in toks[1:]:
+                    overrides[t.lstrip("-")] = not t.startswith("-")
+
+print(f"Package: {cpv} ({'installed' if is_installed else 'not installed'})")
+print(f"Atom:    {cp}\n")
+for flag in all_flags:
+    inst_on = flag in active_set
+    eff_on = overrides.get(flag, inst_on)
+    mark = "[+]" if eff_on else "[-]"
+    notes = []
+    if is_installed:
+        notes.append("installed" if inst_on else "off")
+    if flag in overrides:
+        if is_installed and overrides[flag] != inst_on:
+            notes.append("pending enable" if overrides[flag] else "pending disable")
+        else:
+            notes.append("package.use")
+    note_str = f"  ({', '.join(notes)})" if notes else ""
+    print(f"  {mark} {flag}{note_str}")
+PY
+    exit 0
+fi
+
+if [[ -z "$useflags" ]]; then
+    usage
+    exit 1
+fi
+
+clean="${atom#>=}"; clean="${clean#<=}"; clean="${clean#=}"; clean="${clean#\~}"; clean="${clean#<}"; clean="${clean#>}"
+clean="${clean%%::*}"; clean="${clean%%:*}"
+dir="${clean%%/*}"; pkgver="${clean#*/}"
+
 ver_regex='-[0-9]+(\.[0-9]+)*([a-z]|[0-9]|_alpha|_beta|_pre|_rc|_p|-r[0-9]+)*$'
 if [[ "$pkgver" =~ $ver_regex ]]; then
     file="$(echo "$pkgver" | sed -E "s/$ver_regex//")"
@@ -67,12 +156,9 @@ if [[ "$pkgver" =~ $ver_regex ]]; then
 else
     file="$pkgver"
     target_atom="$dir/$file"
-    if [[ "$forward" -eq 1 ]]; then
-        echo "Warning: -f ignored because '$atom' has no version number." >&2
-    fi
+    [[ "$forward" -eq 1 ]] && echo "Warning: -f ignored because '$atom' has no version number." >&2
 fi
 
-# Ensure parent directories exist even if a regular file previously blocked the path
 [[ -e "$base" && ! -d "$base" ]] && rm -f "$base"
 [[ -e "$base/$dir" && ! -d "$base/$dir" ]] && rm -f "$base/$dir"
 mkdir -p "$base/$dir"
@@ -80,7 +166,6 @@ mkdir -p "$base/$dir"
 target_file="$base/$dir/${prefix}${file}"
 [[ -d "$target_file" ]] && rm -rf "$target_file"
 
-# Deduplicate flags and overwrite target_file with a single clean entry
 awk -v target_atom="$target_atom" -v new_flags="$useflags" '
 BEGIN {
     n_new = split(new_flags, new_arr, /[[:space:]]+/)
@@ -88,27 +173,17 @@ BEGIN {
     for (j = 1; j <= n_new; j++) {
         nf = new_arr[j]
         if (nf == "") continue
-        base_nf = nf
-        sub(/^-/, "", base_nf)
-
+        base_nf = nf; sub(/^-/, "", base_nf)
         replaced = 0
         for (k = 1; k <= count; k++) {
-            existing_base = flags[k]
-            sub(/^-/, "", existing_base)
-            if (existing_base == base_nf) {
-                flags[k] = nf
-                replaced = 1
-            }
+            existing_base = flags[k]; sub(/^-/, "", existing_base)
+            if (existing_base == base_nf) { flags[k] = nf; replaced = 1 }
         }
-        if (!replaced) {
-            flags[++count] = nf
-        }
+        if (!replaced) flags[++count] = nf
     }
     if (count > 0) {
         line = target_atom
-        for (k = 1; k <= count; k++) {
-            if (flags[k] != "") line = line " " flags[k]
-        }
+        for (k = 1; k <= count; k++) if (flags[k] != "") line = line " " flags[k]
         print line
     }
 }' > "$target_file"
