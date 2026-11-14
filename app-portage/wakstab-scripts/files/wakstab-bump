@@ -13,16 +13,20 @@ fi
 shopt -s nullglob
 for pkg_dir in "${REPO_DIR}"/*/*; do
     [[ -d "${pkg_dir}" ]] || continue
-    pkg_name="$(basename "${pkg_dir}")"
-    mapfile -t ebuilds < <(printf '%s\n' "${pkg_dir}"/*.ebuild | sort -V)
+    cat_name="$(basename "$(dirname "${pkg_dir}")")"
+    [[ "${cat_name}" == "metadata" || "${cat_name}" == "profiles" ]] && continue
 
-    if (( ${#ebuilds[@]} > 0 )); then
-	latest="${ebuilds[-1]}"
-	target="${pkg_dir}/${pkg_name}-${NEW_VER}.ebuild"
-	if [[ "${latest}" != "${target}" ]]; then
-	    echo "==> Bumping ${pkg_name} -> ${NEW_VER}"
-	    cp "${latest}" "${target}"
-	fi
+    raw_ebuilds=( "${pkg_dir}"/*.ebuild )
+    (( ${#raw_ebuilds[@]} > 0 )) || continue
+
+    pkg_name="$(basename "${pkg_dir}")"
+    mapfile -t ebuilds < <(printf '%s\n' "${raw_ebuilds[@]}" | sort -V)
+
+    latest="${ebuilds[-1]}"
+    target="${pkg_dir}/${pkg_name}-${NEW_VER}.ebuild"
+    if [[ "${latest}" != "${target}" ]]; then
+        echo "==> Bumping ${pkg_name} -> ${NEW_VER}"
+        cp "${latest}" "${target}"
     fi
 done
 

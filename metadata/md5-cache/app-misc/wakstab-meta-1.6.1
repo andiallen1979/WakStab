@@ -1,0 +1,10 @@
+DEFINED_PHASES=-
+DESCRIPTION=Meta-package for wakstab system configurations, kernel config, and scripts
+EAPI=8
+HOMEPAGE=https://codeberg.org/andiallen1979/WakStab
+IUSE=+conf +kconf +scripts menu
+KEYWORDS=amd64
+LICENSE=metapackage
+RDEPEND=menu? ( app-misc/wakstab-menu ) conf? ( sys-config/wakstab-configs ) kconf? ( sys-kernel/wakstab-kernel-config ) scripts? ( app-portage/wakstab-scripts )
+SLOT=0
+_md5_=2d78bea73a3c7427395d445b32e50587
