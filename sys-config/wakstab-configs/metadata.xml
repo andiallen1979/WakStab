@@ -6,8 +6,12 @@
 	<name>J. Allen</name>
 	</maintainer>
 	<longdescription>
-	Fleet-wide /etc/portage configuration files for WakStab systems,
-	including package.use, package.accept_keywords, package.mask,
-	package.env profiles, repository definitions, and kernel patches.
+	Provides modular Linux kernel configuration fragments installed into
+	/etc/kernel/config.d for WakStab hosts. These snippets standardize
+	hardware support, filesystem drivers, and kernel features across
+	distribution kernel rebuilds.
 	</longdescription>
+	<upstream>
+	<remote-id type="codeberg">andiallen1979/WakStab</remote-id>
+	</upstream>
 </pkgmetadata>

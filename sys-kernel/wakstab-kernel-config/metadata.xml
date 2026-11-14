@@ -11,4 +11,7 @@
 	hardware support, filesystem drivers, and kernel features across
 	distribution kernel rebuilds.
 	</longdescription>
+	<upstream>
+	<remote-id type="codeberg">andiallen1979/WakStab</remote-id>
+	</upstream>
 </pkgmetadata>

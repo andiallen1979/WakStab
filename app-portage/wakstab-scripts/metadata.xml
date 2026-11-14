@@ -10,4 +10,7 @@
 	package keywords, USE flags, environment overrides, masks, package
 	cleanup, and NBD image creation on WakStab systems.
 	</longdescription>
+	<upstream>
+	<remote-id type="codeberg">andiallen1979/WakStab</remote-id>
+	</upstream>
 </pkgmetadata>

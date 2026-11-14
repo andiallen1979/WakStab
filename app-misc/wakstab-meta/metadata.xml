@@ -15,4 +15,7 @@
 	<flag name="kconf">Install kernel configuration files via sys-kernel/wakstab-kernel-config</flag>
 	<flag name="scripts">Install Portage helper scripts via app-portage/wakstab-scripts</flag>
 	</use>
+	<upstream>
+	<remote-id type="codeberg">andiallen1979/WakStab</remote-id>
+	</upstream>
 </pkgmetadata>
