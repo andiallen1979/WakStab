@@ -1,25 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-base="/etc/portage/package.use"
-prefix=""
-forward=0
-view_mode=0
-
-usage() {
-    cat <<USAGE >&2
-Usage: $(basename "$0") [-v] <atom>
-       $(basename "$0") [-t] [-f] <atom> <useflags...>
-
-Options:
-  -v    View the state of every USE flag for <atom> (short name, cat/pkg, or full CPV)
-  -t    Prefix output filename with TMP_
-  -f    Use forward-versioned atom (>=cat/pkg-ver) instead of unversioned cat/pkg
-USAGE
-}
-
+base="/etc/portage/package.use"; prefix=""; forward=0; view_mode=0; interactive_mode=0
+usage() { echo "Usage: $(basename "$0") [-i|-v] <category/package> | [-t] [-f] <category/package> <useflags...>" >&2; }
 while [[ "${1:-}" == -* ]]; do
     case "$1" in
+        -i) interactive_mode=1; shift ;;
         -v) view_mode=1; shift ;;
         -t) prefix="TMP_"; shift ;;
         -f) forward=1; shift ;;
@@ -27,163 +12,114 @@ while [[ "${1:-}" == -* ]]; do
         *) echo "Unknown option: $1" >&2; usage; exit 1 ;;
     esac
 done
-
-atom="${1:-}"
-shift || true
-useflags="$*"
-
-if [[ -z "$atom" ]]; then
-    usage
-    exit 1
-fi
-
-if [[ "$view_mode" -eq 1 ]]; then
-    python3 - "$atom" <<'PY'
-import re, sys
+atom="${1:-}"; shift || true; useflags="$*"
+[[ -z "$atom" || "$atom" != */* ]] && { echo "Error: Full category/package atom required." >&2; usage; exit 1; }
+[[ "$view_mode" -eq 0 && -z "$useflags" ]] && interactive_mode=1
+query_pkg_flags() {
+    python3 - "$1" <<'PY'
+import re, sys, portage
 from pathlib import Path
-import portage
-
 raw = next(iter(sys.argv[slice(1, None)]))
 clean, _, _ = re.sub(r"^[<>~=]+", "", raw).partition("::")
 clean, _, _ = clean.partition(":")
-
-vardb = portage.db[portage.root]["vartree"].dbapi
-portdb = portage.db[portage.root]["porttree"].dbapi
-
-def safe_match(db, atom_str):
-    try:
-        return db.match(atom_str)
-    except portage.exception.InvalidAtom:
-        return []
-
-cpv = None
-if "/" in clean:
-    if vardb.cpv_exists(clean):
-        cpv = clean
-    else:
-        has_ver = portage.catpkgsplit(clean) is not None
-        cand = f"={clean}" if has_ver else clean
-        matches = safe_match(vardb, cand) or safe_match(vardb, clean)
-        if matches:
-            cpv = sorted(matches)[-1]
-        else:
-            pmatches = safe_match(portdb, cand) or safe_match(portdb, clean)
-            if pmatches:
-                cpv = sorted(pmatches)[-1]
-else:
-    for db in (vardb, portdb):
-        found = [c for c in db.cpv_all() if portage.cpv_getkey(c).partition("/") == clean]
-        if found:
-            cpv = sorted(found)[-1]
-            break
-
+vardb, portdb = portage.db[portage.root]["vartree"].dbapi, portage.db[portage.root]["porttree"].dbapi
+def sm(db, a):
+    try: return db.match(a)
+    except portage.exception.InvalidAtom: return []
+cpv = clean if vardb.cpv_exists(clean) else None
 if not cpv:
-    sys.exit(f"Error: Could not resolve package '{raw}' in installed or Portage tree.")
-
-cp = portage.cpv_getkey(cpv)
-is_installed = vardb.cpv_exists(cpv)
-db = vardb if is_installed else portdb
-
-iuse_raw, active_raw = db.aux_get(cpv, ["IUSE", "USE"])
-active_set = set(active_raw.split()) if is_installed else set()
-all_flags = sorted({f.lstrip("+-") for f in iuse_raw.split()})
-
-overrides = {}
-base_dir = Path("/etc/portage/package.use")
-if base_dir.exists():
-    files = [base_dir] if base_dir.is_file() else sorted(x for x in base_dir.rglob("*") if x.is_file() and not x.name.startswith("."))
-    for f in files:
-        for line in f.read_text(encoding="utf-8", errors="ignore").splitlines():
-            st = line.strip()
-            if not st or st.startswith("#"):
-                continue
-            toks = st.split()
-            if len(toks) < 2:
-                continue
-            a, _, _ = re.sub(r"^[<>~=]+", "", next(iter(toks))).partition("::")
-            a, _, _ = a.partition(":")
-            try:
-                line_cp = portage.dep_getkey(a)
-            except portage.exception.InvalidAtom:
-                line_cp = portage.cpv_getkey(a)
-            if line_cp == cp:
-                for t in toks[1:]:
-                    overrides[t.lstrip("-")] = not t.startswith("-")
-
-print(f"Package: {cpv} ({'installed' if is_installed else 'not installed'})")
-print(f"Atom:    {cp}\n")
-for flag in all_flags:
-    inst_on = flag in active_set
-    eff_on = overrides.get(flag, inst_on)
-    mark = "[+]" if eff_on else "[-]"
-    notes = []
-    if is_installed:
-        notes.append("installed" if inst_on else "off")
-    if flag in overrides:
-        if is_installed and overrides[flag] != inst_on:
-            notes.append("pending enable" if overrides[flag] else "pending disable")
-        else:
-            notes.append("package.use")
-    note_str = f"  ({', '.join(notes)})" if notes else ""
-    print(f"  {mark} {flag}{note_str}")
+    cand = f"={clean}" if portage.catpkgsplit(clean) else clean
+    m = sm(vardb, cand) or sm(vardb, clean) or sm(portdb, cand) or sm(portdb, clean)
+    cpv = sorted(m)[-1] if m else None
+if not cpv: sys.exit(f"Error: Could not resolve '{raw}'.")
+cp, inst = portage.cpv_getkey(cpv), vardb.cpv_exists(cpv)
+db = vardb if inst else portdb
+iuse, act = db.aux_get(cpv, ["IUSE", "USE"])
+aset, aflags = (set(act.split()) if inst else set()), sorted({f.lstrip("+-") for f in iuse.split()})
+ov, bdir = {}, Path("/etc/portage/package.use")
+if bdir.exists():
+    for f in ([bdir] if bdir.is_file() else sorted(x for x in bdir.rglob("*") if x.is_file())):
+        for ln in f.read_text(encoding="utf-8", errors="ignore").splitlines():
+            t = ln.split()
+            if len(t) >= 2 and not ln.lstrip().startswith("#"):
+                a, _, _ = re.sub(r"^[<>~=]+", "", next(iter(t))).partition("::")
+                a, _, _ = a.partition(":")
+                try: lcp = portage.dep_getkey(a)
+                except portage.exception.InvalidAtom: lcp = portage.cpv_getkey(a)
+                if lcp == cp:
+                    for x in t[1:]: ov[x.lstrip("-")] = not x.startswith("-")
+print(f"META|{cpv}|{cp}|{1 if inst else 0}")
+for fl in aflags:
+    io = 1 if fl in aset else 0
+    print(f"FLAG|{fl}|{io}|{1 if ov.get(fl, bool(io)) else 0}|{1 if fl in ov else 0}")
 PY
-    exit 0
+}
+write_single_entry() {
+    local t_atom="$1" t_file="$2" new_flags="$3"
+    [[ -e "$base" && ! -d "$base" ]] && rm -f "$base"
+    [[ -e "$(dirname "$t_file")" && ! -d "$(dirname "$t_file")" ]] && rm -f "$(dirname "$t_file")"
+    mkdir -p "$(dirname "$t_file")"; [[ -d "$t_file" ]] && rm -rf "$t_file"
+    [[ -z "$new_flags" ]] && { rm -f "$t_file"; rmdir "$(dirname "$t_file")" 2>/dev/null || true; return; }
+    awk -v ta="$t_atom" -v nf="$new_flags" 'BEGIN {
+        n=split(nf,a,/[[:space:]]+/); c=0
+        for(j=1;j<=n;j++){ if(a[j]=="")continue; b=a[j]; sub(/^-/,"",b); r=0
+            for(k=1;k<=c;k++){ eb=f[k]; sub(/^-/,"",eb); if(eb==b){f[k]=a[j];r=1} }
+            if(!r) f[++c]=a[j] }
+        if(c>0){ l=ta; for(k=1;k<=c;k++) l=l" "f[k]; print l }
+    }' > "$t_file"
+}
+if [[ "$view_mode" -eq 1 || "$interactive_mode" -eq 1 ]]; then
+    mapfile -t raw_lines < <(query_pkg_flags "$atom")
+    resolved_cpv=""; resolved_cp=""; is_inst=0
+    declare -a flag_names=() flag_inst=() flag_eff=() flag_ov=()
+    for line in "${raw_lines[@]}"; do
+        IFS='|' read -r kind f1 f2 f3 f4 <<< "$line"
+        if [[ "$kind" == "META" ]]; then resolved_cpv="$f1"; resolved_cp="$f2"; is_inst="$f3"
+        elif [[ "$kind" == "FLAG" ]]; then flag_names+=("$f1"); flag_inst+=("$f2"); flag_eff+=("$f3"); flag_ov+=("$f4"); fi
+    done
+    if [[ "$view_mode" -eq 1 ]]; then
+        echo "Package: ${resolved_cpv} ($( [[ "$is_inst" -eq 1 ]] && echo "installed" || echo "not installed" ))"
+        for idx in "${!flag_names[@]}"; do
+            mark=$( [[ "${flag_eff[$idx]}" -eq 1 ]] && echo "[+]" || echo "[-]" ); note=""
+            [[ "$is_inst" -eq 1 ]] && note=$( [[ "${flag_inst[$idx]}" -eq 1 ]] && echo "installed" || echo "off" )
+            if [[ "${flag_ov[$idx]}" -eq 1 ]]; then
+                ov_txt="package.use"
+                [[ "$is_inst" -eq 1 && "${flag_eff[$idx]}" -ne "${flag_inst[$idx]}" ]] && ov_txt=$( [[ "${flag_eff[$idx]}" -eq 1 ]] && echo "pending enable" || echo "pending disable" )
+                note="${note:+${note}, }${ov_txt}"
+            fi
+            printf "  %s %-22s %s\n" "$mark" "${flag_names[$idx]}" "${note:+(${note})}"
+        done; exit 0
+    fi
+    (( ${#flag_names[@]} == 0 )) && { echo "No configurable USE flags for ${resolved_cpv}."; exit 0; }
+    target_file="${base}/${resolved_cp%%/*}/${prefix}${resolved_cp#*/}"
+    while true; do
+        echo -e "\n=== ${resolved_cp} (${resolved_cpv}) ==="
+        PS3="Toggle flag # ([s]ave, [r]eset, [q]uit): "
+        menu_items=(); for idx in "${!flag_names[@]}"; do menu_items+=("$( [[ "${flag_eff[$idx]}" -eq 1 ]] && echo "[+]" || echo "[-]" ) ${flag_names[$idx]}"); done
+        select choice in "${menu_items[@]}"; do
+            case "$REPLY" in
+                s|S|save)
+                    out_flags=(); for idx in "${!flag_names[@]}"; do [[ "${flag_eff[$idx]}" -ne "${flag_inst[$idx]}" ]] && out_flags+=("$( [[ "${flag_eff[$idx]}" -eq 1 ]] && echo "${flag_names[$idx]}" || echo "-${flag_names[$idx]}" )"); done
+                    write_single_entry "$resolved_cp" "$target_file" "${out_flags[*]:-}"
+                    echo "Saved: ${resolved_cp} ${out_flags[*]:-(reverted)}"; exit 0 ;;
+                r|R|reset)
+                    for idx in "${!flag_names[@]}"; do flag_eff[$idx]="${flag_inst[$idx]}"; done; break ;;
+                q|Q|quit) exit 0 ;;
+                *)
+                    if [[ "$REPLY" =~ ^[0-9]+$ ]] && (( REPLY >= 1 && REPLY <= ${#flag_names[@]} )); then
+                        ai=$((REPLY - 1)); flag_eff[$ai]=$(( 1 - flag_eff[$ai] )); break
+                    fi; echo "Invalid choice: $REPLY" ;;
+            esac
+        done
+    done
 fi
-
-if [[ -z "$useflags" ]]; then
-    usage
-    exit 1
-fi
-
 clean="${atom#>=}"; clean="${clean#<=}"; clean="${clean#=}"; clean="${clean#\~}"; clean="${clean#<}"; clean="${clean#>}"
-clean="${clean%%::*}"; clean="${clean%%:*}"
-dir="${clean%%/*}"; pkgver="${clean#*/}"
-
+clean="${clean%%::*}"; clean="${clean%%:*}"; dir="${clean%%/*}"; pkgver="${clean#*/}"
 ver_regex='-[0-9]+(\.[0-9]+)*([a-z]|[0-9]|_alpha|_beta|_pre|_rc|_p|-r[0-9]+)*$'
 if [[ "$pkgver" =~ $ver_regex ]]; then
     file="$(echo "$pkgver" | sed -E "s/$ver_regex//")"
-    if [[ "$forward" -eq 1 ]]; then
-        if [[ "$atom" == =* && "$atom" != ==* ]]; then
-            target_atom=">${atom}"
-        elif [[ ! "$atom" =~ ^(=|>=|<=|~|<|>) ]]; then
-            target_atom=">=$atom"
-        else
-            target_atom="$atom"
-        fi
-    else
-        target_atom="$dir/$file"
-    fi
+    target_atom=$( [[ "$forward" -eq 1 ]] && echo ">=$clean" || echo "$dir/$file" )
 else
-    file="$pkgver"
-    target_atom="$dir/$file"
-    [[ "$forward" -eq 1 ]] && echo "Warning: -f ignored because '$atom' has no version number." >&2
+    file="$pkgver"; target_atom="$dir/$file"
 fi
-
-[[ -e "$base" && ! -d "$base" ]] && rm -f "$base"
-[[ -e "$base/$dir" && ! -d "$base/$dir" ]] && rm -f "$base/$dir"
-mkdir -p "$base/$dir"
-
-target_file="$base/$dir/${prefix}${file}"
-[[ -d "$target_file" ]] && rm -rf "$target_file"
-
-awk -v target_atom="$target_atom" -v new_flags="$useflags" '
-BEGIN {
-    n_new = split(new_flags, new_arr, /[[:space:]]+/)
-    count = 0
-    for (j = 1; j <= n_new; j++) {
-        nf = new_arr[j]
-        if (nf == "") continue
-        base_nf = nf; sub(/^-/, "", base_nf)
-        replaced = 0
-        for (k = 1; k <= count; k++) {
-            existing_base = flags[k]; sub(/^-/, "", existing_base)
-            if (existing_base == base_nf) { flags[k] = nf; replaced = 1 }
-        }
-        if (!replaced) flags[++count] = nf
-    }
-    if (count > 0) {
-        line = target_atom
-        for (k = 1; k <= count; k++) if (flags[k] != "") line = line " " flags[k]
-        print line
-    }
-}' > "$target_file"
+write_single_entry "$target_atom" "$base/$dir/${prefix}${file}" "$useflags"
