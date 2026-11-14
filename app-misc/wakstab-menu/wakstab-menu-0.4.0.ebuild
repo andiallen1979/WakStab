@@ -1,0 +1,23 @@
+# Copyright 2026 Gentoo Authors
+# Distributed under the terms of the GNU General Public License v2
+
+EAPI=8
+
+DISTUTILS_USE_PEP517=setuptools
+PYTHON_COMPAT=( python3_{11..14} )
+
+inherit distutils-r1
+
+DESCRIPTION="Kconfig menuconfig TUI for toggling Portage USE flags across installed packages"
+HOMEPAGE="https://gentoo.org"
+SRC_URI="${P}.tar.gz"
+RESTRICT="fetch"
+
+LICENSE="MIT"
+SLOT="0"
+KEYWORDS="~amd64"
+
+RDEPEND="
+	dev-python/kconfiglib[${PYTHON_USEDEP}]
+	sys-apps/portage[${PYTHON_USEDEP}]
+"
