@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SKIP_CANARY=0
+
+usage() {
+	cat <<USAGE
+Usage: $(basename "$0") [OPTIONS] [-- emerge-options...]
+Options:
+  -s, --skip-canary   Skip the unattended sys-apps/which canary emerge
+  -h, --help          Show this help message and exit
+USAGE
+}
+
+while [[ "${1:-}" == -* ]]; do
+	case "$1" in
+		-s|--skip-canary) SKIP_CANARY=1; shift ;;
+		-h|--help)        usage; exit 0 ;;
+		--)               shift; break ;;
+		*)                break ;;
+	esac
+done
+
+[[ ${EUID} -ne 0 ]] && { echo "Error: $(basename "$0") must be run as root." >&2; exit 1; }
+
+LOG_DIR="/var/log/wakstab"
+mkdir -p "${LOG_DIR}"
+START_FILE="${LOG_DIR}/emptytree_start.txt"
+
+echo "==> [1/4] Syncing Portage GPG signing & verification keyrings..."
+SIGN_HOME="$(portageq envvar BINPKG_GPG_SIGNING_GPG_HOME 2>/dev/null || true)"
+VERIFY_HOME="$(portageq envvar BINPKG_GPG_VERIFY_GPG_HOME 2>/dev/null || true)"
+SIGN_KEY="$(portageq envvar BINPKG_GPG_SIGNING_KEY 2>/dev/null || true)"
+
+if [[ -n "${SIGN_HOME}" && -n "${VERIFY_HOME}" && -n "${SIGN_KEY}" ]]; then
+	if [[ -d "${SIGN_HOME}" && -d "${VERIFY_HOME}" ]]; then
+		gpg --homedir "${SIGN_HOME}" --export "${SIGN_KEY}" | gpg --homedir "${VERIFY_HOME}" --import
+		echo "Synced GPG key ${SIGN_KEY} -> ${VERIFY_HOME}."
+	else
+		echo "Warning: Configured GPG directories not found; skipping sync." >&2
+	fi
+fi
+
+echo "==> [2/4] Verifying Rust toolchain & unattended Portage execution..."
+command -v rustc >/dev/null 2>&1 && rustc -vV
+(( ! SKIP_CANARY )) && emerge -1v sys-apps/which
+
+echo "==> [3/4] Recording build start timestamp..."
+START_TS="$(date '+%Y-%m-%d %H:%M')"
+echo "${START_TS}" | tee "${START_FILE}"
+echo "Retrieve timings after completion with: genlop -t --date \"\$(cat ${START_FILE})\""
+
+echo "==> [4/4] Launching full @world --emptytree rebuild..."
+emerge -ev --keep-going "$@" @world || true
+command -v wakstab-audit >/dev/null 2>&1 && wakstab-audit -q

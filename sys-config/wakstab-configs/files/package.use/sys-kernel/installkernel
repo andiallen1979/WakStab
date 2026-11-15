@@ -1,1 +1,1 @@
-sys-kernel/installkernel -grub systemd systemd-boot dracut
+sys-kernel/installkernel dracut

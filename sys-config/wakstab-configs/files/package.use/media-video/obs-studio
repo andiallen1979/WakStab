@@ -1,1 +1,1 @@
-media-video/obs-studio browser -decklink -fdk jack mpegts qsv -vlc websocket lua_single_target_luajit
+media-video/obs-studio lua_single_target_luajit

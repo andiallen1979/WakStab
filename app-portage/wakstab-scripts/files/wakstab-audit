@@ -1,0 +1,175 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REVIEW_BASE="/etc/portage/review"
+SINCE_DATE=""
+ALL_HISTORY=0
+QUIET=0
+
+usage() {
+	cat <<USAGE
+Usage: $(basename "$0") [OPTIONS]
+Options:
+  -d, --date <ts>   Filter genlop -t from specific timestamp (e.g. "2026-11-15 14:19")
+  -a, --all         Capture complete genlop -t history instead of latest emptytree run
+  -o, --out <dir>   Override base review directory (default: ${REVIEW_BASE})
+  -q, --quiet       Write archive files without printing full report to stdout
+  -h, --help        Show this help message and exit
+USAGE
+}
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+		-d|--date)  SINCE_DATE="$2"; shift 2 ;;
+		-a|--all)   ALL_HISTORY=1; shift ;;
+		-o|--out)   REVIEW_BASE="$2"; shift 2 ;;
+		-q|--quiet) QUIET=1; shift ;;
+		-h|--help)  usage; exit 0 ;;
+		*)          echo "Unknown option: $1" >&2; usage; exit 1 ;;
+	esac
+done
+
+STAMP="$(date '+%Y-%m-%d_%H-%M-%S')"
+SNAP_DIR="${REVIEW_BASE}/${STAMP}"
+mkdir -p "${SNAP_DIR}"
+
+AUDIT_FILE="${SNAP_DIR}/audit.txt"
+GENLOP_FILE="${SNAP_DIR}/genlop.txt"
+
+collect_audit() {
+	echo "=== SNAPSHOT TIMESTAMP: ${STAMP} ==="
+	echo "=== PORTAGE PROFILE & CONFIG ==="
+	command -v eselect >/dev/null 2>&1 && echo "Profile: $(eselect profile show | tail -n1 | xargs)"
+	echo "--- make.conf ---"
+	grep -vE "^#|^$" /etc/portage/make.conf 2>/dev/null || true
+	echo "--- Existing package.env / env ---"
+	ls -la /etc/portage/env /etc/portage/package.env 2>/dev/null || true
+
+	echo -e "\n=== TOOLCHAIN SELECTION & AVAILABILITY ==="
+	if command -v eselect >/dev/null 2>&1; then
+		for mod in gcc binutils llvm rust python ruby lua java-vm opencl; do
+			if eselect "$mod" show >/dev/null 2>&1; then
+				echo "eselect $mod: $(eselect "$mod" show | tail -n1 | xargs)"
+			fi
+		done
+	fi
+	echo "--- Installed Compilers, Linkers & Build Tools ---"
+	for tool in gcc clang llvm-config rustc cargo ld ld.bfd ld.gold ld.lld mold ninja make cmake ccache distcc sccache; do
+		if command -v "$tool" >/dev/null 2>&1; then
+			ver="$("$tool" --version 2>/dev/null | head -n1)"
+			echo "[INSTALLED] $tool -> $ver"
+		else
+			echo "[MISSING]   $tool"
+		fi
+	done
+
+	echo -e "\n=== GCC & LLVM/CLANG TARGET RESOLUTION ==="
+	if command -v gcc >/dev/null 2>&1; then
+		echo -n "GCC Native: "
+		gcc -march=native -Q --help=target 2>/dev/null | grep -E "^\s*(-march|-mtune)=" | xargs
+		echo -n "GCC Offload Targets: "
+		gcc -v 2>&1 | grep -oE -- "--enable-offload-targets=[^ ]+" || echo "None"
+	fi
+	if command -v clang >/dev/null 2>&1; then
+		echo -n "Clang Native: "
+		clang -march=native -### -x c /dev/null 2>&1 | grep -oE '"-target-cpu" "[^"]*"' | xargs
+	fi
+	if command -v llvm-config >/dev/null 2>&1; then
+		echo "LLVM Targets Built: $(llvm-config --targets-built)"
+	fi
+
+	echo -e "\n=== CPU INFO & CACHE ==="
+	lscpu | grep -E "Model name|Architecture|CPU\(s\)|Thread|Core|Socket|MHz|cache"
+	echo -n "CPU Flags: "
+	grep -m1 "flags" /proc/cpuinfo | cut -d: -f2
+
+	echo -e "\n=== GPU & OFFLOADING CAPABILITIES ==="
+	lspci -nn | grep -iE "vga|3d|display" || true
+	command -v rocminfo >/dev/null 2>&1 && echo "ROCm Agent(s): $(rocminfo | grep -E "Name:|Marketing Name:" | xargs)"
+	command -v nvidia-smi >/dev/null 2>&1 && echo "NVIDIA GPU: $(nvidia-smi --query-gpu=name,memory.total,compute_cap --format=csv,noheader)"
+	command -v clinfo >/dev/null 2>&1 && echo "OpenCL Platforms: $(clinfo -l | xargs)"
+	command -v vulkaninfo >/dev/null 2>&1 && echo "Vulkan GPU: $(vulkaninfo --summary 2>/dev/null | grep "deviceName" | xargs)"
+
+	echo -e "\n=== MEMORY & SWAP ==="
+	free -h
+	if command -v dmidecode >/dev/null 2>&1 && [[ ${EUID} -eq 0 ]]; then
+		echo "--- Memory Hardware Details ---"
+		dmidecode -t memory 2>/dev/null | grep -E "Size:|Type:|Speed:|Configured Memory Speed:|Locator:" | grep -v "No Module Installed" | grep -v "Unknown" || true
+	fi
+
+	echo -e "\n=== ALL STORAGE DRIVES & FILESYSTEMS ==="
+	lsblk -d -o NAME,ROTA,SIZE,MODEL,TRAN | awk 'NR==1{print $0, "TYPE"} NR>1{type=($2=="1"?"HDD":"SSD/NVMe"); print $0, type}'
+	echo "--- Mounted Filesystems ---"
+	df -hT -x tmpfs -x devtmpfs -x squashfs 2>/dev/null || true
+	echo "--- Portage Build & Distfiles Mounts ---"
+	df -hT /var/tmp/portage /var/cache/distfiles /var/db/repos/gentoo 2>/dev/null || true
+
+	echo -e "\n=== PORTAGE ACTIVE VARS ==="
+	command -v emerge >/dev/null 2>&1 && emerge --info 2>/dev/null | grep -E "^(ACCEPT_KEYWORDS|FEATURES|VIDEO_CARDS|LLVM_TARGETS|CPU_FLAGS_X86|USE)=" || true
+}
+
+collect_genlop() {
+	if ! command -v genlop >/dev/null 2>&1; then
+		echo "Warning: genlop not installed; skipping build time capture."
+		return
+	fi
+
+	local start_file="/var/log/wakstab/emptytree_start.txt"
+	if [[ -z "${SINCE_DATE}" && "${ALL_HISTORY}" -eq 0 && -f "${start_file}" ]]; then
+		SINCE_DATE="$(cat "${start_file}")"
+	fi
+
+	local raw_tmp
+	raw_tmp="$(mktemp)"
+	if [[ -n "${SINCE_DATE}" ]]; then
+		echo "=== GENLOP BUILD TIMES (SINCE: ${SINCE_DATE}) ==="
+		genlop -t --date "${SINCE_DATE}" > "${raw_tmp}" 2>&1 || true
+	else
+		echo "=== GENLOP BUILD TIMES (FULL HISTORY) ==="
+		genlop -t > "${raw_tmp}" 2>&1 || true
+	fi
+
+	echo -e "\n--- TOP 40 LONGEST BUILDS (SECONDS) ---"
+	python3 - "${raw_tmp}" << 'PY'
+import re, sys
+from pathlib import Path
+
+text = Path(sys.argv[1]).read_text(encoding="utf-8", errors="ignore")
+entries = []
+cur_pkg = None
+for line in text.splitlines():
+    m_pkg = re.search(r'>>>\s+([^\s]+)', line)
+    if m_pkg:
+        cur_pkg = m_pkg.group(1)
+    m_time = re.search(r'merge time:\s*(?:(\d+)\s*hours?,?\s*)?(?:(\d+)\s*minutes?,?\s*)?(?:(\d+)\s*seconds?)?', line)
+    if m_time and cur_pkg:
+        h = int(m_time.group(1) or 0)
+        m = int(m_time.group(2) or 0)
+        s = int(m_time.group(3) or 0)
+        total = h * 3600 + m * 60 + s
+        entries.append((total, f"{h}h {m}m {s}s", cur_pkg))
+        cur_pkg = None
+
+for total, fmt, pkg in sorted(entries, reverse=True)[:40]:
+    print(f"{total:6d}s  ({fmt:>10s})  {pkg}")
+PY
+
+	echo -e "\n--- FULL GENLOP OUTPUT ---"
+	cat "${raw_tmp}"
+	rm -f "${raw_tmp}"
+}
+
+collect_audit > "${AUDIT_FILE}"
+collect_genlop > "${GENLOP_FILE}"
+
+ln -sfn "${SNAP_DIR}" "${REVIEW_BASE}/latest"
+
+if (( ! QUIET )); then
+	cat "${AUDIT_FILE}"
+	echo ""
+	head -n 50 "${GENLOP_FILE}"
+fi
+
+echo -e "\n==> Saved review snapshot to: ${SNAP_DIR}"
+echo "    - Audit report:  ${AUDIT_FILE}"
+echo "    - Build timings: ${GENLOP_FILE}"

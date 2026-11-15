@@ -36,7 +36,6 @@ media-plugins/gst-plugins-meta abi_x86_32
 media-libs/gst-plugins-good abi_x86_32
 media-plugins/gst-plugins-a52dec abi_x86_32
 media-plugins/gst-plugins-faad abi_x86_32
-media-plugins/gst-plugins-dts3 abi_x86_32
 media-plugins/gst-plugins-dv abi_x86_32
 media-plugins/gst-plugins-dvb abi_x86_32
 media-libs/gst-plugins-ugly abi_x86_32

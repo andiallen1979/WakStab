@@ -1,0 +1,2 @@
+llvm-core/llvm llvm_targets_DirectX
+llvm-core/clang llvm_targets_DirectX

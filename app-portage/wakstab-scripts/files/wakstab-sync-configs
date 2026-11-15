@@ -30,6 +30,7 @@ PORTAGE_DIRS=(
     env
     repos.conf
     patches
+rm -rf "${PORTAGE_FILES}/review"
 )
 
 if [[ ! -d "${PORTAGE_FILES}" || ! -d "${KERNEL_FILES}" ]]; then
@@ -60,6 +61,7 @@ rm -f "${PORTAGE_FILES}/package.accept_keywords/dev-debug/gdbgui"
 rm -f "${PORTAGE_FILES}/package.accept_keywords/dev-python/pypresence"
 rm -f "${PORTAGE_FILES}/package.accept_keywords/media-video/devedeng"
 rm -f "${PORTAGE_FILES}/patches/sys-kernel/neptune-kernel/ra24-fix.patch"
+rm -rf "${PORTAGE_FILES}/review"
 
 if [[ -d "${KERNEL_SRC}" ]]; then
     echo "==> Syncing live ${KERNEL_SRC}/*.config into ${KERNEL_FILES}..."

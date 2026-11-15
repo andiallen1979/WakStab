@@ -1,2 +1,1 @@
-x11-libs/libdrm tools video_cards_nouveau
-=x11-libs/libdrm-9999999:0/0::ROKO__ -doc -test
+x11-libs/libdrm video_cards_radeon

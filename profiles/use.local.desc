@@ -1,0 +1,9 @@
+# This file is deprecated as per GLEP 56 in favor of metadata.xml.
+# Please add your descriptions to your package's metadata.xml ONLY.
+# * generated automatically using pmaint *
+
+app-misc/wakstab-meta:conf - Install system configuration files via sys-config/wakstab-configs
+app-misc/wakstab-meta:kconf - Install kernel configuration files via sys-kernel/wakstab-kernel-config
+app-misc/wakstab-meta:menu - Install app-misc/wakstab-menu Kconfig USE flag manager TUI
+app-misc/wakstab-meta:scripts - Install Portage helper scripts via app-portage/wakstab-scripts
+app-misc/wakstabcfg:qt6 - Build and install the native PyQt6 graphical interface (wakstabcfg-qt6)

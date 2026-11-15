@@ -27,4 +27,6 @@ src_install() {
 	dobin "${FILESDIR}/wakstab-sync-configs"
 	dobin "${FILESDIR}/wakstab-push"
 	dobin "${FILESDIR}/wakstab-bump"
+	dobin "${FILESDIR}/wakstab-emptytree"
+	dobin "${FILESDIR}/wakstab-audit"
 }

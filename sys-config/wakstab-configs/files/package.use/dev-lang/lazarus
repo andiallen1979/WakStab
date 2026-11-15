@@ -1,1 +1,1 @@
-dev-lang/lazarus gui -gtk qt6
+dev-lang/lazarus -gtk qt6

@@ -1,1 +1,1 @@
-www-client/firefox system-pipewire
+www-client/firefox hwaccel system-pipewire -openh264
