@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pkgmetadata SYSTEM "https://gentoo.org">
+<pkgmetadata>
+	<maintainer type="person">
+		<email>andiallen1979@protonmail.com</email>
+		<name>J. Allen</name>
+	</maintainer>
+	<longdescription>
+		QParted is a native Qt6 and KDE Frameworks 6 partition editor,
+		data rescue scanner, and sparse disk/partition imager powered by
+		GParted Core.
+	</longdescription>
+	<upstream>
+		<remote-id type="codeberg">andiallen1979/WakStab</remote-id>
+	</upstream>
+</pkgmetadata>
