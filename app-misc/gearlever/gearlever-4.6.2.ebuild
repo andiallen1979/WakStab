@@ -25,7 +25,7 @@ DEPEND="
 
 RDEPEND="
 	${DEPEND}
-	|| ( app-arch/7zip app-arch/p7zip )
+	app-arch/7zip
 	gnome-base/dconf
 	sys-devel/binutils
 	sys-fs/fuse:0
