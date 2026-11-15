@@ -8,7 +8,7 @@ inherit cmake xdg
 GPARTED_PV="1.8.0"
 DESCRIPTION="Native Qt6 / KDE Plasma partition editor, rescue scanner, and sparse imager"
 HOMEPAGE="https://codeberg.org"
-SRC_URI="https://sourceforge.net{GPARTED_PV}.tar.gz"
+SRC_URI="https://sourceforge.net/gparted/gparted-1.8.0.tar.gz"
 S="${WORKDIR}/qparted-${PV}"
 
 LICENSE="GPL-2+"
@@ -40,5 +40,5 @@ src_unpack() {
 	default
 	mkdir -p "${S}/upstream" || die
 	tar -xJf "${FILESDIR}/${P}.tar.xz" -C "${S}" || die
-	mv "${WORKDIR}/gparted-${GPARTED_PV}" "${S}/upstream/gparted" || die
+	mv "${WORKDIR}/gparted-1.8.0" "${S}/upstream/gparted" || die
 }
