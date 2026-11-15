@@ -7,9 +7,9 @@ PYTHON_COMPAT=( python3_{11..14} )
 inherit cmake python-any-r1 xdg
 
 DESCRIPTION="Native Qt6 / KDE Plasma partition editor, rescue scanner, and sparse imager"
-HOMEPAGE="https://codeberg.org"
+HOMEPAGE="https://codeberg.org/andiallen1979/WakStab"
 GPARTED_P="gparted-1.8.0"
-SRC_URI="https://sourceforge.net{GPARTED_P}/${GPARTED_P}.tar.gz"
+SRC_URI="https://downloads.sourceforge.net/project/gparted/gparted/gparted-1.8.0/gparted-1.8.0.tar.gz{GPARTED_P}/${GPARTED_P}.tar.gz"
 S="${WORKDIR}/qparted-${PV}"
 
 LICENSE="GPL-2+"
