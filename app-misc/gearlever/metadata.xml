@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pkgmetadata SYSTEM "https://gentoo.org">
+<pkgmetadata>
+	<maintainer type="person">
+		<email>andiallen1979@users.noreply.codeberg.org</email>
+		<name>J. Allen</name>
+	</maintainer>
+	<upstream>
+		<remote-id type="github">mijorus/gearlever</remote-id>
+	</upstream>
+</pkgmetadata>
