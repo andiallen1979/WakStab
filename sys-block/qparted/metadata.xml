@@ -7,10 +7,10 @@
 	</maintainer>
 	<longdescription>
 		QParted is a native Qt6 and KDE Frameworks 6 partition editor,
-		data rescue scanner, and sparse disk/partition imager powered by
-		GParted Core.
+		data rescue scanner, and sparse imager powered by GParted Core.
 	</longdescription>
 	<upstream>
 		<remote-id type="codeberg">andiallen1979/WakStab</remote-id>
+		<remote-id type="gnome-gitlab">GNOME/gparted</remote-id>
 	</upstream>
 </pkgmetadata>
