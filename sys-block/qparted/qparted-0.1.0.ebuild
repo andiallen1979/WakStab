@@ -8,7 +8,7 @@ inherit cmake python-any-r1 xdg
 
 DESCRIPTION="Native Qt6 / KDE Plasma partition editor, rescue scanner, and sparse imager"
 HOMEPAGE="https://codeberg.org/andiallen1979/WakStab"
-SRC_URI="https://downloads.sourceforge.net/project/gparted/gparted/gparted-1.7.0/gparted-1.7.0.tar.gz"
+SRC_URI="https://gitlab.gnome.org/GNOME/gparted/-/archive/484ac562bdaddf0e9c54a1f47b5366f0a72b4dc8/gparted-484ac562bdaddf0e9c54a1f47b5366f0a72b4dc8.tar.bz2"
 S="${WORKDIR}/qparted-${PV}"
 
 LICENSE="GPL-2+"
@@ -40,5 +40,5 @@ src_unpack() {
 	default
 	mkdir -p "${S}/upstream" || die
 	tar -xJf "${FILESDIR}/${P}.tar.xz" -C "${S}" || die
-	mv "${WORKDIR}/gparted-1.7.0" "${S}/upstream/gparted" || die
+	mv "${WORKDIR}/gparted-484ac562bdaddf0e9c54a1f47b5366f0a72b4dc8" "${S}/upstream/gparted" || die
 }
