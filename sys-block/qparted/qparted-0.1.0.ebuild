@@ -42,3 +42,9 @@ src_unpack() {
 	tar -xJf "${FILESDIR}/${P}.tar.xz" -C "${S}" || die
 	mv "${WORKDIR}/gparted-484ac562bdaddf0e9c54a1f47b5366f0a72b4dc8" "${S}/upstream/gparted" || die
 }
+
+src_install() {
+	cmake_src_install
+	keepdir /usr/share/qparted/images
+	fperms 1777 /usr/share/qparted/images
+}
