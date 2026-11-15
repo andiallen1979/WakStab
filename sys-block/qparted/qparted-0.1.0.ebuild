@@ -3,9 +3,9 @@
 
 EAPI=8
 
-inherit cmake xdg
+PYTHON_COMPAT=( python3_{11..14} )
+inherit cmake python-any-r1 xdg
 
-GPARTED_PV="1.8.0"
 DESCRIPTION="Native Qt6 / KDE Plasma partition editor, rescue scanner, and sparse imager"
 HOMEPAGE="https://codeberg.org"
 SRC_URI="https://sourceforge.net"
@@ -31,7 +31,7 @@ RDEPEND="${DEPEND}
 	sys-auth/polkit
 "
 BDEPEND="
-	dev-lang/python:*
+	${PYTHON_DEPS}
 	kde-frameworks/extra-cmake-modules:0
 	virtual/pkgconfig
 "
