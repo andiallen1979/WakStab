@@ -4,11 +4,13 @@
 EAPI=8
 
 PYTHON_COMPAT=( python3_{11..15} )
-inherit cmake python-any-r1 xdg
+inherit cmake git-r3 python-any-r1 xdg
 
 DESCRIPTION="Native Qt6 / KDE Plasma partition editor, rescue scanner, and sparse imager"
-HOMEPAGE="https://codeberg.org/andiallen1979/WakStab"
-SRC_URI="https://gitlab.gnome.org/GNOME/gparted/-/archive/484ac562bdaddf0e9c54a1f47b5366f0a72b4dc8/gparted-484ac562bdaddf0e9c54a1f47b5366f0a72b4dc8.tar.bz2"
+HOMEPAGE="https://codeberg.org"
+EGIT_REPO_URI="https://gitlab.gnome.org/GNOME/gparted.git"
+EGIT_COMMIT="484ac562bdaddf0e9c54a1f47b5366f0a72b4dc8"
+EGIT_CHECKOUT_DIR="${WORKDIR}/gparted-upstream"
 S="${WORKDIR}/qparted-${PV}"
 
 LICENSE="GPL-2+"
@@ -37,10 +39,11 @@ BDEPEND="
 "
 
 src_unpack() {
-	default
+	git-r3_src_unpack
 	mkdir -p "${S}/upstream" || die
-	tar -xJf "${FILESDIR}/${P}.tar.xz" -C "${S}" || die
-	mv "${WORKDIR}/gparted-484ac562bdaddf0e9c54a1f47b5366f0a72b4dc8" "${S}/upstream/gparted" || die
+	tar -xJf "${FILESDIR}/qparted-src-0.1.0.tar.xz" -C "${S}" || die
+	tar -xJf "${FILESDIR}/qparted-meta-0.1.0.tar.xz" -C "${S}" || die
+	mv "${EGIT_CHECKOUT_DIR}" "${S}/upstream/gparted" || die
 }
 
 src_install() {

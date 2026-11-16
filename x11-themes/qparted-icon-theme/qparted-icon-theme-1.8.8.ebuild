@@ -14,7 +14,7 @@ SLOT="0"
 KEYWORDS="~amd64"
 
 src_unpack() {
-	unpack "${FILESDIR}/${P}.tar.xz"
+	unpack "${FILESDIR}/${PN}-0.1.0.tar.xz"
 }
 
 src_install() {
