@@ -8,8 +8,8 @@ PYTHON_COMPAT=( python3_{11..15} )
 inherit gnome2-utils meson python-single-r1 xdg
 
 DESCRIPTION="Versatile toolbox for viewing Flatpak info and managing user data"
-HOMEPAGE="https://github.com"
-SRC_URI="https://github.com/archive/refs/tags/${PV}.tar.gz -> ${P}.tar.gz"
+HOMEPAGE="https://github.com{GH_OWNER}/warehouse/archive/"
+SRC_URI="https://github.com{GH_OWNER}/warehouse/archive//archive/refs/tags/${PV}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="GPL-3"
 SLOT="0"

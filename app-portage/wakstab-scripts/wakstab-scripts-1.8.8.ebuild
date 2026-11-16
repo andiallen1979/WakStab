@@ -16,17 +16,21 @@ RDEPEND="
 	sys-apps/portage
 "
 
+src_unpack() {
+	unpack "${WORKDIR}/wakstab-scripts-bundle.tar.xz"
+}
+
 src_install() {
-	dobin "${FILESDIR}/setpkgkw"
-	dobin "${FILESDIR}/setpkgenv"
-	dobin "${FILESDIR}/setpkguse"
-	dobin "${FILESDIR}/setpkgmask"
-	dobin "${FILESDIR}/cleanpkg"
-	dobin "${FILESDIR}/mknbdimg"
-	dobin "${FILESDIR}/wakstab-repo-prep"
-	dobin "${FILESDIR}/wakstab-sync-configs"
-	dobin "${FILESDIR}/wakstab-push"
-	dobin "${FILESDIR}/wakstab-bump"
-	dobin "${FILESDIR}/wakstab-emptytree"
-	dobin "${FILESDIR}/wakstab-audit"
+	dobin "${WORKDIR}/setpkgkw"
+	dobin "${WORKDIR}/setpkgenv"
+	dobin "${WORKDIR}/setpkguse"
+	dobin "${WORKDIR}/setpkgmask"
+	dobin "${WORKDIR}/cleanpkg"
+	dobin "${WORKDIR}/mknbdimg"
+	dobin "${WORKDIR}/wakstab-repo-prep"
+	dobin "${WORKDIR}/wakstab-sync-configs"
+	dobin "${WORKDIR}/wakstab-push"
+	dobin "${WORKDIR}/wakstab-bump"
+	dobin "${WORKDIR}/wakstab-emptytree"
+	dobin "${WORKDIR}/wakstab-audit"
 }
