@@ -8,7 +8,7 @@ inherit cmake git-r3 python-any-r1 xdg
 
 DESCRIPTION="Gentool-NG: Native Qt6/KF6 Portage, Partition, and Virtual Disk Chroot Suite"
 HOMEPAGE="https://codeberg.org"
-EGIT_REPO_URI="https://gnome.org"
+EGIT_REPO_URI="https://gitlab.gnome.org/GNOME/gparted.git"
 EGIT_COMMIT="484ac562bdaddf0e9c54a1f47b5366f0a72b4dc8"
 EGIT_CHECKOUT_DIR="${WORKDIR}/gparted-upstream"
 S="${WORKDIR}/gentool-ng-${PV}"
