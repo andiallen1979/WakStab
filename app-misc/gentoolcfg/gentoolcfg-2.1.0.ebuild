@@ -32,4 +32,6 @@ src_unpack() {
 python_install_all() {
 	distutils-r1_python_install_all
 	use gui && use qt6 && domenu "${S}/gentoolcfg-qt6.desktop"
+	insinto /usr/share/polkit-1/actions
+	use gui && use qt6 && doins "${S}/org.wakstab.gentoolcfg.policy"
 }
