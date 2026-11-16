@@ -41,7 +41,7 @@ BDEPEND="${PYTHON_DEPS} kde-frameworks/extra-cmake-modules:0 virtual/pkgconfig"
 src_unpack() {
 	git-r3_src_unpack
 	mkdir -p "${S}/upstream" || die
-	tar -xJf "${FILESDIR}/gentool-ng-src-1.0.0.tar.xz" -C "${S}" || die
+	tar -xJf "${FILESDIR}/gentool-ng-src-1.71.2.tar.xz" -C "${S}" || die
 	mv "${EGIT_CHECKOUT_DIR}" "${S}/upstream/gparted" || die
 }
 
