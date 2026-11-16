@@ -16,6 +16,7 @@ IUSE="+gui qt6"
 
 RDEPEND="
 	app-portage/genlop
+	x11-apps/xwininfo
 	dev-python/textual[${PYTHON_USEDEP}]
 	sys-apps/portage[${PYTHON_USEDEP}]
 	gui? (
