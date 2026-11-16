@@ -26,6 +26,7 @@ DEPEND="
 	kde-frameworks/ki18n:6
 	kde-frameworks/kwidgetsaddons:6
 	kde-frameworks/kxmlgui:6
+        x11-libs/qtermwidget
 	sys-apps/util-linux
 	>=sys-block/parted-3.2
 "
