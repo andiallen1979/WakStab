@@ -4,14 +4,15 @@
 EAPI=8
 
 DESCRIPTION="Meta-package for wakstab system configurations, kernel config, and scripts"
-HOMEPAGE="https://codeberg.org/andiallen1979/WakStab"
+HOMEPAGE="https://codeberg.org"
 
 LICENSE="metapackage"
 SLOT="0"
 KEYWORDS="amd64"
-IUSE="+conf +kconf +scripts menu"
+IUSE="+bootcfg +conf +kconf +scripts menu"
 
 RDEPEND="
+	bootcfg? ( sys-boot/wakstab-bootcfg )
 	menu? ( app-misc/wakstab-menu )
 	conf? ( sys-config/wakstab-configs )
 	kconf? ( sys-kernel/wakstab-kernel-config )

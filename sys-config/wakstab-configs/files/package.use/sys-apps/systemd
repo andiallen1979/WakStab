@@ -1,1 +1,1 @@
-sys-apps/systemd boot apparmor audit cryptsetup curl elfutils fido2 gnutls -homed -imds -importd lzma -passwdqc -pwquality qrcode -remote tpm -ukify -vanilla xkb
+sys-apps/systemd -boot apparmor audit cryptsetup curl elfutils fido2 gnutls -homed -imds -importd lzma -passwdqc -pwquality qrcode -remote tpm -ukify -vanilla xkb

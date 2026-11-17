@@ -9,6 +9,7 @@ Personal Gentoo Linux overlay, kernel/system configuration packages, and Portage
 * **`app-portage/wakstab-scripts`**: CLI helper utilities for Portage configuration, NBD disk imaging, package cleanup, and overlay maintenance.
 * **`sys-config/wakstab-configs`**: Host Portage configuration files (`/etc/portage/make.conf`, `package.*`, `repos.conf`, `patches/`).
 * **`sys-kernel/wakstab-kernel-config`**: Custom kernel configuration presets.
+* **`sys-boot/wakstab-bootcfg`**: Declarative bootloader and Secure Boot switcher (`USE="grub|systemd-boot|refind secureboot"`).
 
 ## Quick Setup
 

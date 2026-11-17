@@ -11,6 +11,7 @@
 	configuration fragments, and helper utilities via USE flags.
 	</longdescription>
 	<use>
+	<flag name="bootcfg">Manage bootloader and Secure Boot mode via <pkg>sys-boot/wakstab-bootcfg</pkg></flag>
 		<flag name="menu">Install <pkg>app-misc/wakstab-menu</pkg> Kconfig USE flag manager TUI</flag>
 	<flag name="conf">Install system configuration files via sys-config/wakstab-configs</flag>
 	<flag name="kconf">Install kernel configuration files via sys-kernel/wakstab-kernel-config</flag>

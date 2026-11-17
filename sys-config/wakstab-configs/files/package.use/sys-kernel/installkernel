@@ -1,1 +1,1 @@
-sys-kernel/installkernel dracut
+sys-kernel/installkernel grub dracut -systemd -systemd-boot -ukify -uki -efistub
