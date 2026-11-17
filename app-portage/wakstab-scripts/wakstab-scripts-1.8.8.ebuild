@@ -17,7 +17,7 @@ RDEPEND="
 "
 
 src_unpack() {
-	unpack "${WORKDIR}/wakstab-scripts-bundle.tar.xz"
+	unpack "${FILESDIR}/wakstab-scripts-bundle.tar.xz"
 }
 
 src_install() {
