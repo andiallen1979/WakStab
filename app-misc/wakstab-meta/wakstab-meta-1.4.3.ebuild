@@ -12,9 +12,9 @@ KEYWORDS="amd64"
 IUSE="+bootcfg +conf +kconf +scripts menu"
 
 RDEPEND="
-	bootcfg? ( sys-boot/wakstab-bootcfg )
-	menu? ( app-misc/wakstab-menu )
+	bootcfg? ( sys-boot/gentool-bootcfg )
+	menu? ( app-misc/gentool-menu )
 	conf? ( sys-config/wakstab-configs )
 	kconf? ( sys-kernel/wakstab-kernel-config )
-	scripts? ( app-portage/wakstab-scripts )
+	scripts? ( app-portage/gentool-scripts )
 "

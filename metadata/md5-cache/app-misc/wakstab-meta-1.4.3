@@ -1,0 +1,10 @@
+DEFINED_PHASES=-
+DESCRIPTION=Meta-package for wakstab system configurations, kernel config, and scripts
+EAPI=8
+HOMEPAGE=https://codeberg.org
+IUSE=+bootcfg +conf +kconf +scripts menu
+KEYWORDS=amd64
+LICENSE=metapackage
+RDEPEND=bootcfg? ( sys-boot/gentool-bootcfg ) menu? ( app-misc/gentool-menu ) conf? ( sys-config/wakstab-configs ) kconf? ( sys-kernel/wakstab-kernel-config ) scripts? ( app-portage/gentool-scripts )
+SLOT=0
+_md5_=67d28252145943164a649810f8459440

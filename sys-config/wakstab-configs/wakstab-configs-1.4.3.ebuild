@@ -11,7 +11,7 @@ LICENSE="GPL-2"
 SLOT="0"
 KEYWORDS="amd64"
 
-RDEPEND="app-portage/wakstab-scripts sys-kernel/wakstab-kernel-config"
+RDEPEND="app-portage/gentool-scripts sys-kernel/wakstab-kernel-config"
 
 src_install() {
 	local dir

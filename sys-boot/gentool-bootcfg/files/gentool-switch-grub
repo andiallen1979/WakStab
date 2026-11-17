@@ -2,7 +2,7 @@
 set -euo pipefail
 [[ $EUID -eq 0 ]] || { echo "Run as root."; exit 1; }
 mountpoint -q /efi || mount /efi
-NO_EMERGE=0; ID="$(hostname)"
+NO_EMERGE=0; ID="$(grep -E "^[[:space:]]*COMMON_NAME=" /etc/portage/make.conf 2>/dev/null | tail -n1 | cut -d= -f2- | tr -d "\"'" || hostname)"
 for arg in "$@"; do
   [[ "$arg" == "--no-emerge" ]] && NO_EMERGE=1 || ID="$arg"
 done

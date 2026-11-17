@@ -12,9 +12,9 @@ printf "# CONFIG_MODULE_SIG is not set\n# CONFIG_MODULE_SIG_FORCE is not set\n" 
 
 MID=$(cat /etc/machine-id 2>/dev/null || true)
 [[ -n "$MID" && -d "/efi/$MID" ]] && rm -rf "/efi/$MID"
-rm -rf /efi/c5f35ad52c064dee6e69bd996af2c953 /efi/loader /efi/EFI/systemd /efi/EFI/Linux /efi/EFI/WakStab /efi/EFI/Wakaka /boot/grub
+rm -rf /efi/c5f35ad52c064dee6e69bd996af2c953 /efi/loader /efi/EFI/systemd /efi/EFI/Linux /efi/EFI/WakStab gentool /efi/EFI/Wakaka /boot/grub
 while read -r line; do
-  if [[ "$line" =~ ^Boot([0-9A-Fa-f]{4})\*?[[:space:]]+(Linux\ Boot\ Manager|systemd-boot|WakStab|Wakaka|GRUB) ]]; then
+  if [[ "$line" =~ ^Boot([0-9A-Fa-f]{4})\*?[[:space:]]+(Linux\ Boot\ Manager|systemd-boot|WakStab gentool|Wakaka|GRUB) ]]; then
     efibootmgr -b "${BASH_REMATCH}" -B || true
   fi
 done < <(efibootmgr)

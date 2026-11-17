@@ -144,7 +144,7 @@ def collect_portage_state() -> dict:
     act_feat = set(settings.get("FEATURES", "").split())
     f_desc = dict(COMMON_FEATURES)
     g_feat = [{"feature": f, "desc": f_desc.get(f, "Custom feature"), "initial": exp_feat.get(f, f in act_feat), "sym": f"GFEAT_{sanitize_symbol(f)}"} for f in sorted(set(f_desc) | set(exp_feat))]
-    presets = {f"wakstab-{k.lower()}.conf": (b, d) for k, b, d in ENV_PRESETS}
+    presets = {f"gentool-{k.lower()}.conf": (b, d) for k, b, d in ENV_PRESETS}
     all_envs = sorted(set(env_profiles) | set(presets))
     inst_map, cp_ver, all_cps = {}, {}, set()
     skip = ("abi_", "kernel_", "elibc_", "userland_", "video_cards_", "input_devices_")

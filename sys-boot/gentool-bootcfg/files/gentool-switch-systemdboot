@@ -17,9 +17,9 @@ else
   printf "# CONFIG_MODULE_SIG is not set\n# CONFIG_MODULE_SIG_FORCE is not set\n" > /etc/kernel/config.d/module-sign.config
 fi
 
-rm -rf /efi/EFI/WakStab /efi/EFI/Wakaka /efi/EFI/gentoo /efi/EFI/refind /boot/grub /boot/kernel-* /boot/initramfs-*
+rm -rf /efi/EFI/WakStab gentool /efi/EFI/Wakaka /efi/EFI/gentoo /efi/EFI/refind /boot/grub /boot/kernel-* /boot/initramfs-*
 while read -r line; do
-  if [[ "$line" =~ ^Boot([0-9A-Fa-f]{4})\*?[[:space:]]+(WakStab|Wakaka|gentoo|GRUB|rEFInd) ]]; then
+  if [[ "$line" =~ ^Boot([0-9A-Fa-f]{4})\*?[[:space:]]+(WakStab gentool|Wakaka|gentoo|GRUB|rEFInd) ]]; then
     efibootmgr -b "${BASH_REMATCH}" -B || true
   fi
 done < <(efibootmgr)

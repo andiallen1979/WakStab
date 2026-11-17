@@ -1,9 +1,9 @@
-from wakstab_menu.portage_io import *
+from gentool_menu.portage_io import *
 
 def generate_kconfig(state: dict, kpath: Path) -> None:
     by_cat = {}
     for p in state["packages"]: by_cat.setdefault(p["cat"], []).append(p)
-    L = ['mainmenu "WakStab Portage Configuration Manager"', "", 'menu "1. USE Flags (package.use)"']
+    L = ['mainmenu "Gentool Portage Configuration Manager"', "", 'menu "1. USE Flags (package.use)"']
     for cat in sorted(by_cat):
         pkgs = [p for p in by_cat[cat] if p["flags"]]
         if not pkgs: continue
@@ -205,7 +205,7 @@ def main() -> None:
     state = collect_portage_state()
     if not state["packages"]:
         sys.exit("No installed packages found.")
-    with tempfile.TemporaryDirectory(prefix="wakstab-menu-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="gentool-menu-") as tmp:
         kp, cp = Path(tmp) / "Kconfig", Path(tmp) / ".config"
         generate_kconfig(state, kp)
         os.environ["KCONFIG_CONFIG"] = str(cp)
