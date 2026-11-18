@@ -7,7 +7,7 @@ PYTHON_COMPAT=( python3_{13..14} )
 inherit desktop distutils-r1
 
 DESCRIPTION="TUI and PyQt6 GUI configuration manager for Gentoo Portage"
-HOMEPAGE="https://codeberg.org/andiallen1979/WakStab"
+HOMEPAGE="https://github.com/andiallen1979/WakStab"
 S="${WORKDIR}/${P}"
 LICENSE="MIT"
 SLOT="0"

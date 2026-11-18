@@ -9,7 +9,7 @@ PYTHON_COMPAT=( python3_{11..15} )
 inherit distutils-r1 pypi
 
 DESCRIPTION="Python library for reading, writing and editing desktop entries"
-HOMEPAGE="https://codeberg.org/JakobDev/desktop-entry-lib https://pypi.org/project/desktop-entry-lib/"
+HOMEPAGE="https://github.com/JakobDev/desktop-entry-lib https://pypi.org/project/desktop-entry-lib/"
 
 LICENSE="BSD-2"
 SLOT="0"

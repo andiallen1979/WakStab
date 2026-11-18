@@ -10,7 +10,7 @@
 		data rescue scanner, and sparse imager powered by GParted Core.
 	</longdescription>
 	<upstream>
-		<remote-id type="codeberg">andiallen1979/WakStab</remote-id>
+		<remote-id type="github">andiallen1979/WakStab</remote-id>
 		<remote-id type="gnome-gitlab">GNOME/gparted</remote-id>
 	</upstream>
 </pkgmetadata>

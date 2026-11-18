@@ -18,6 +18,6 @@
 	<flag name="scripts">Install Portage helper scripts via app-portage/wakstab-scripts</flag>
 	</use>
 	<upstream>
-	<remote-id type="codeberg">andiallen1979/WakStab</remote-id>
+	<remote-id type="github">andiallen1979/WakStab</remote-id>
 	</upstream>
 </pkgmetadata>

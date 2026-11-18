@@ -10,6 +10,6 @@
 		fallback inheritance.
 	</longdescription>
 	<upstream>
-		<remote-id type="codeberg">andiallen1979/WakStab</remote-id>
+		<remote-id type="github">andiallen1979/WakStab</remote-id>
 	</upstream>
 </pkgmetadata>
