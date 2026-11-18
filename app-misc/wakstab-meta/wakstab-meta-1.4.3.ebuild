@@ -9,9 +9,10 @@ HOMEPAGE="https://fragtoo.com"
 LICENSE="metapackage"
 SLOT="0"
 KEYWORDS="amd64"
-IUSE="+bootcfg +conf +kconf +scripts menu"
+IUSE="+bootcfg +conf +kconf +scripts menu +profiles"
 
 RDEPEND="
+	profiles? ( app-portage/gentool-profiles )
 	bootcfg? ( sys-boot/gentool-bootcfg )
 	menu? ( app-misc/gentool-menu )
 	conf? ( sys-config/wakstab-configs )
