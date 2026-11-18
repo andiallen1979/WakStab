@@ -4,12 +4,12 @@
 	<repo quality="experimental" status="unofficial">
 		<name>WakStab</name>
 		<description lang="en">Personal Gentoo overlay, fleet-wide Portage configurations, kernel config fragments, and helper scripts for the WakStab binhost.</description>
-		<homepage>https://codeberg.org</homepage>
+		<homepage>https://fragtoo.com</homepage>
 		<owner type="person">
 			<email>andiallen1979@protonmail.com</email>
 			<name>J. Allen</name>
 		</owner>
-		<source type="git">https://codeberg.org.git</source>
-		<feed>https://codeberg.org.atom</feed>
+		<source type="git">https://fragtoo.com.git</source>
+		<feed>https://fragtoo.com.atom</feed>
 	</repo>
 </repositories>
