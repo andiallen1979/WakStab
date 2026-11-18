@@ -3,9 +3,9 @@ DESCRIPTION=Declarative bootloader and Secure Boot switcher for Gentool hosts
 EAPI=8
 HOMEPAGE=https://fragtoo.com
 IUSE=+grub systemd-boot refind secureboot
-KEYWORDS=~amd64 ~arm64
+KEYWORDS=~amd64
 LICENSE=GPL-2
 RDEPEND=sys-boot/efibootmgr sys-kernel/dracut sys-kernel/installkernel grub? ( sys-boot/grub ) systemd-boot? ( sys-apps/systemd:= ) refind? ( sys-boot/refind ) secureboot? ( app-crypt/sbctl )
 REQUIRED_USE=^^ ( grub systemd-boot refind ) secureboot? ( systemd-boot )
 SLOT=0
-_md5_=fd21bcf19e1d4c52b57754ff54368ae4
+_md5_=604077ae568ed93b6189fb55e8562768
