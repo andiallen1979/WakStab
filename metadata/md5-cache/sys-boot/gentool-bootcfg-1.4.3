@@ -1,11 +1,11 @@
 DEFINED_PHASES=install postinst
 DESCRIPTION=Declarative bootloader and Secure Boot switcher for Gentool hosts
 EAPI=8
-HOMEPAGE=https://codeberg.org
+HOMEPAGE=https://fragtoo.com
 IUSE=+grub systemd-boot refind secureboot
 KEYWORDS=amd64 arm64
 LICENSE=GPL-2
 RDEPEND=sys-boot/efibootmgr sys-kernel/dracut sys-kernel/installkernel grub? ( sys-boot/grub ) systemd-boot? ( sys-apps/systemd ) refind? ( sys-boot/refind ) secureboot? ( app-crypt/sbctl )
 REQUIRED_USE=^^ ( grub systemd-boot refind ) secureboot? ( systemd-boot )
 SLOT=0
-_md5_=366987bd15a5813718415cfa0bbb4b0d
+_md5_=481cf9c4e6c3680b90e7c0dfef817403
