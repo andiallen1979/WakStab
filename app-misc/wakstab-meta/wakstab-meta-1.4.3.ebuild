@@ -4,7 +4,7 @@
 EAPI=8
 
 DESCRIPTION="Meta-package for wakstab system configurations, kernel config, and scripts"
-HOMEPAGE="https://codeberg.org"
+HOMEPAGE="https://fragtoo.com"
 
 LICENSE="metapackage"
 SLOT="0"

@@ -5,7 +5,7 @@ DISTUTILS_USE_PEP517=setuptools
 PYTHON_COMPAT=( python3_{11..15} )
 inherit distutils-r1
 DESCRIPTION="Kconfig menuconfig TUI for toggling Portage USE flags across installed packages"
-HOMEPAGE="https://codeberg.org"
+HOMEPAGE="https://fragtoo.com"
 S="${WORKDIR}/${P}"
 LICENSE="MIT"
 SLOT="0"

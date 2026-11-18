@@ -4,7 +4,7 @@
 EAPI=8
 
 DESCRIPTION="Fleet-wide Portage configuration tree for WakStab"
-HOMEPAGE="https://codeberg.org"
+HOMEPAGE="https://fragtoo.com"
 S="${WORKDIR}"
 
 LICENSE="GPL-2"

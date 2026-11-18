@@ -4,7 +4,7 @@
 EAPI=8
 
 DESCRIPTION="WakStab host kernel configuration snippets for /etc/kernel/config.d"
-HOMEPAGE="https://codeberg.org"
+HOMEPAGE="https://fragtoo.com"
 S="${WORKDIR}"
 
 LICENSE="GPL-2"

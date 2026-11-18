@@ -7,7 +7,7 @@ PYTHON_COMPAT=( python3_{11..15} )
 inherit cmake git-r3 python-any-r1 xdg
 
 DESCRIPTION="Native Qt6 / KDE Plasma partition editor, rescue scanner, and sparse imager"
-HOMEPAGE="https://codeberg.org"
+HOMEPAGE="https://fragtoo.com"
 EGIT_REPO_URI="https://gitlab.gnome.org/GNOME/gparted.git"
 EGIT_COMMIT="484ac562bdaddf0e9c54a1f47b5366f0a72b4dc8"
 EGIT_CHECKOUT_DIR="${WORKDIR}/gparted-upstream"

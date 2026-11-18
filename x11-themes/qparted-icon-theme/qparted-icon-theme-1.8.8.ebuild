@@ -6,7 +6,7 @@ EAPI=8
 inherit xdg
 
 DESCRIPTION="Classic colorful XDG icon theme for QParted"
-HOMEPAGE="https://codeberg.org"
+HOMEPAGE="https://fragtoo.com"
 S="${WORKDIR}"
 
 LICENSE="GPL-2+"
